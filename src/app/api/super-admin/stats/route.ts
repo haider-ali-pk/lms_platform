@@ -11,15 +11,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    const [totalSchools, totalUsers, totalStudents, totalTeachers] = await Promise.all([
-      prisma.school.count(),
-      prisma.user.count(),
-      prisma.user.count({ where: { role: 'STUDENT' } }),
-      prisma.user.count({ where: { role: 'TEACHER' } }),
-    ])
+    const totalSchools = await prisma.school.count()
 
-    return NextResponse.json({ success: true, data: { totalSchools, totalUsers, totalStudents, totalTeachers } })
-  } catch {
+    const allUsers = await prisma.user.findMany({
+      select: { role: true },
+    })
+
+    const totalUsers = allUsers.length
+    const totalStudents = allUsers.filter((u: any) => String(u.role) === 'student').length
+const totalTeachers = allUsers.filter((u: any) => String(u.role) === 'teacher').length
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        totalSchools,
+        totalUsers,
+        totalStudents,
+        totalTeachers,
+      },
+    })
+  } catch (err) {
+    console.error('STATS ERROR:', err)
     return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
   }
 }

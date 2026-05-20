@@ -1,3 +1,7 @@
+// prisma/schema.prisma
+// EduFlow LMS — Full Schema v1.0
+// Multi-tenant SaaS · Pakistan · 21,011 users · 10 schools
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,332 +12,529 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
 enum Role {
-  SUPER_ADMIN
-  ADMIN
-  TEACHER
-  STUDENT
-  PARENT
+  super_admin
+  admin
+  teacher
+  student
+  parent
 }
 
-enum PlanType {
-  STARTER
-  PROFESSIONAL
-  ENTERPRISE
-}
-
-enum EnrollmentStatus {
-  ACTIVE
-  COMPLETED
-  DROPPED
-}
-
-enum AttendanceStatus {
-  PRESENT
-  ABSENT
-  LATE
+enum PlanTier {
+  starter
+  growth
+  enterprise
 }
 
 enum SubscriptionStatus {
-  ACTIVE
-  CANCELED
-  PAST_DUE
-  TRIALING
+  active
+  trialing
+  past_due
+  canceled
+  unpaid
 }
 
-model School {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique
-  logoUrl     String?
-  domain      String?
-  plan        PlanType @default(STARTER)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum LessonType {
+  video
+  text
+  pdf
+  quiz
+}
 
-  users              User[]
-  courses            Course[]
-  classes            Class[]
-  stripeSubscription StripeSubscription?
+enum AttendanceStatus {
+  present
+  absent
+  late
+  excused
+}
+
+enum AssignmentStatus {
+  submitted
+  graded
+  late
+  missing
+}
+
+enum NotificationType {
+  assignment_due
+  quiz_result
+  attendance_alert
+  certificate_earned
+  payment_alert
+  general
+}
+
+enum CertificateStatus {
+  issued
+  revoked
+}
+
+// ─────────────────────────────────────────────
+// CORE TABLES
+// ─────────────────────────────────────────────
+
+model School {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique  // subdomain: beaconhouse.eduflow.pk
+  email          String
+  phone          String?
+  address        String?
+  city           String?
+  logo_url       String?
+  custom_domain  String?
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  // Relations
+  users               User[]
+  courses             Course[]
+  classes             Class[]
+  stripe_subscription StripeSubscription?
+  audit_logs          AuditLog[]
+  notifications       Notification[]
+
+  @@index([slug])
+  @@map("schools")
 }
 
 model User {
-  id            String   @id @default(uuid())
-  schoolId      String?
-  name          String
-  email         String   @unique
-  passwordHash  String
+  id            String    @id @default(cuid())
+  school_id     String?   // null = super_admin (no school)
+  email         String    @unique
+  password_hash String
   role          Role
-  otpCode       String?
-  otpExpiresAt  DateTime?
-  twoFaEnabled  Boolean  @default(false)
-  twoFaSecret   String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  first_name    String
+  last_name     String
+  phone         String?
+  avatar_url    String?
+  is_active     Boolean   @default(true)
+  is_verified   Boolean   @default(false)
+  two_fa_secret String?
+  two_fa_enabled Boolean  @default(false)
+  otp_code      String?
+  otp_expires_at DateTime?
+  last_login_at  DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime? // soft delete
 
-  school               School?             @relation(fields: [schoolId], references: [id])
-  enrollments          Enrollment[]
-  parentLinks          ParentStudent[]     @relation("ParentLinks")
-  childLinks           ParentStudent[]     @relation("ChildLinks")
-  submittedAssignments AssignmentSubmission[]
-  sentMessages         Message[]           @relation("SentMessages")
-  receivedMessages     Message[]           @relation("ReceivedMessages")
-  notifications        Notification[]
-  auditLogs            AuditLog[]
-  lessonProgress       LessonProgress[]
-  quizAttempts         QuizAttempt[]
-  attendance           Attendance[]
-  certificates         Certificate[]
-  aiChatHistory        AiChatHistory[]
-  taughtCourses        Course[]
-  taughtClasses        Class[]
+  // Relations
+  school                School?              @relation(fields: [school_id], references: [id])
+  courses_created       Course[]             @relation("CourseAuthor")
+  enrollments           Enrollment[]
+  lesson_progress       LessonProgress[]
+  quiz_attempts         QuizAttempt[]
+  assignments_submitted AssignmentSubmission[]
+  attendance_records    Attendance[]
+  certificates          Certificate[]
+  ai_chat_history       AiChatHistory[]
+  messages_sent         Message[]            @relation("Sender")
+  messages_received     Message[]            @relation("Receiver")
+  notifications         Notification[]
+  audit_logs            AuditLog[]
+  children              ParentStudent[]      @relation("ParentRelation")
+  parents               ParentStudent[]      @relation("StudentRelation")
+  classes_teaching      ClassTeacher[]
+
+  @@index([school_id])
+  @@index([email])
+  @@index([role])
+  @@index([deleted_at])
+  @@map("users")
 }
+
+// ─────────────────────────────────────────────
+// LEARNING TABLES
+// ─────────────────────────────────────────────
 
 model Course {
-  id           String   @id @default(uuid())
-  schoolId     String
-  teacherId    String
+  id           String   @id @default(cuid())
+  school_id    String
+  author_id    String
   title        String
   description  String?
-  thumbnailUrl String?
-  price        Decimal  @default(0)
-  isPublished  Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  thumbnail_url String?
+  subject      String?
+  grade_level  String?
+  is_published Boolean  @default(false)
+  pass_mark    Int      @default(60) // % to earn certificate
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  deleted_at   DateTime?
 
-  school      School       @relation(fields: [schoolId], references: [id])
-  teacher     User         @relation(fields: [teacherId], references: [id])
+  // Relations
+  school      School       @relation(fields: [school_id], references: [id])
+  author      User         @relation("CourseAuthor", fields: [author_id], references: [id])
   lessons     Lesson[]
-  enrollments Enrollment[]
   quizzes     Quiz[]
   assignments Assignment[]
-  classes     Class[]
+  enrollments Enrollment[]
   certificates Certificate[]
-}
 
-model Class {
-  id        String   @id @default(uuid())
-  schoolId  String
-  teacherId String
-  courseId  String?
-  name      String
-  schedule  String?
-  createdAt DateTime @default(now())
-
-  school      School          @relation(fields: [schoolId], references: [id])
-  teacher     User            @relation(fields: [teacherId], references: [id])
-  course      Course?         @relation(fields: [courseId], references: [id])
-  students    ClassStudent[]
-  attendance  Attendance[]
-}
-
-model ClassStudent {
-  id        String @id @default(uuid())
-  classId   String
-  studentId String
-
-  class   Class @relation(fields: [classId], references: [id])
-
-  @@unique([classId, studentId])
+  @@index([school_id])
+  @@index([author_id])
+  @@map("courses")
 }
 
 model Lesson {
-  id              String   @id @default(uuid())
-  courseId        String
-  title           String
-  videoUrl        String?
-  content         String?
-  orderIndex      Int      @default(0)
-  durationSeconds Int      @default(0)
-  createdAt       DateTime @default(now())
+  id           String     @id @default(cuid())
+  course_id    String
+  title        String
+  content      String?    // text content or description
+  video_url    String?
+  pdf_url      String?
+  type         LessonType @default(video)
+  order        Int        @default(0)
+  duration_min Int?       // video length in minutes
+  is_published Boolean    @default(false)
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
 
-  course   Course           @relation(fields: [courseId], references: [id])
+  // Relations
+  course   Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
   progress LessonProgress[]
-}
 
-model LessonProgress {
-  id           String   @id @default(uuid())
-  lessonId     String
-  studentId    String
-  completed    Boolean  @default(false)
-  watchSeconds Int      @default(0)
-  updatedAt    DateTime @updatedAt
-
-  lesson  Lesson @relation(fields: [lessonId], references: [id])
-  student User   @relation(fields: [studentId], references: [id])
-
-  @@unique([lessonId, studentId])
+  @@index([course_id])
+  @@index([order])
+  @@map("lessons")
 }
 
 model Enrollment {
-  id          String           @id @default(uuid())
-  userId      String
-  courseId    String
-  status      EnrollmentStatus @default(ACTIVE)
-  amountPaid  Decimal          @default(0)
-  enrolledAt  DateTime         @default(now())
+  id          String   @id @default(cuid())
+  student_id  String
+  course_id   String
+  enrolled_at DateTime @default(now())
+  completed_at DateTime?
 
-  user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
+  // Relations
+  student User   @relation(fields: [student_id], references: [id])
+  course  Course @relation(fields: [course_id], references: [id])
 
-  @@unique([userId, courseId])
+  @@unique([student_id, course_id])
+  @@index([student_id])
+  @@index([course_id])
+  @@map("enrollments")
 }
 
-model Quiz {
-  id              String   @id @default(uuid())
-  courseId        String
-  title           String
-  passPercentage  Int      @default(60)
-  timeLimitMins   Int?
-  createdAt       DateTime @default(now())
+model LessonProgress {
+  id           String   @id @default(cuid())
+  student_id   String
+  lesson_id    String
+  is_completed Boolean  @default(false)
+  watch_time   Int?     // seconds watched
+  completed_at DateTime?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
-  course    Course         @relation(fields: [courseId], references: [id])
+  // Relations
+  student User   @relation(fields: [student_id], references: [id])
+  lesson  Lesson @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  @@unique([student_id, lesson_id])
+  @@index([student_id])
+  @@map("lesson_progress")
+}
+
+// ─────────────────────────────────────────────
+// QUIZ ENGINE
+// ─────────────────────────────────────────────
+
+model Quiz {
+  id           String   @id @default(cuid())
+  course_id    String
+  title        String
+  description  String?
+  time_limit   Int?     // minutes, null = no limit
+  pass_mark    Int      @default(60)
+  max_attempts Int      @default(3)
+  is_published Boolean  @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  course    Course        @relation(fields: [course_id], references: [id], onDelete: Cascade)
   questions QuizQuestion[]
   attempts  QuizAttempt[]
+
+  @@index([course_id])
+  @@map("quizzes")
 }
 
 model QuizQuestion {
-  id            String @id @default(uuid())
-  quizId        String
-  question      String
-  options       Json
-  correctAnswer String
-  points        Int    @default(1)
+  id            String   @id @default(cuid())
+  quiz_id       String
+  question_text String
+  options       Json     // ["Option A", "Option B", "Option C", "Option D"]
+  correct_index Int      // 0-based index of correct option
+  explanation   String?
+  points        Int      @default(1)
+  order         Int      @default(0)
 
-  quiz Quiz @relation(fields: [quizId], references: [id])
+  // Relations
+  quiz Quiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+
+  @@index([quiz_id])
+  @@map("quiz_questions")
 }
 
 model QuizAttempt {
-  id          String   @id @default(uuid())
-  quizId      String
-  studentId   String
-  answers     Json
-  score       Int      @default(0)
-  passed      Boolean  @default(false)
-  attemptedAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  quiz_id     String
+  student_id  String
+  answers     Json     // {question_id: selected_index}
+  score       Int      // percentage 0-100
+  passed      Boolean
+  time_taken  Int?     // seconds
+  submitted_at DateTime @default(now())
 
-  quiz    Quiz @relation(fields: [quizId], references: [id])
-  student User @relation(fields: [studentId], references: [id])
+  // Relations
+  quiz    Quiz @relation(fields: [quiz_id], references: [id])
+  student User @relation(fields: [student_id], references: [id])
+
+  @@index([quiz_id])
+  @@index([student_id])
+  @@map("quiz_attempts")
 }
 
-model Assignment {
-  id          String   @id @default(uuid())
-  courseId    String
-  title       String
-  description String?
-  dueDate     DateTime?
-  maxMarks    Int      @default(100)
-  createdAt   DateTime @default(now())
+// ─────────────────────────────────────────────
+// ASSIGNMENTS
+// ─────────────────────────────────────────────
 
-  course      Course                 @relation(fields: [courseId], references: [id])
+model Assignment {
+  id           String   @id @default(cuid())
+  course_id    String
+  title        String
+  description  String
+  due_date     DateTime
+  max_marks    Int      @default(100)
+  is_published Boolean  @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  course      Course                 @relation(fields: [course_id], references: [id], onDelete: Cascade)
   submissions AssignmentSubmission[]
+
+  @@index([course_id])
+  @@map("assignments")
 }
 
 model AssignmentSubmission {
-  id             String   @id @default(uuid())
-  assignmentId   String
-  studentId      String
-  fileUrl        String?
-  marksObtained  Int?
-  feedback       String?
-  submittedAt    DateTime @default(now())
+  id            String           @id @default(cuid())
+  assignment_id String
+  student_id    String
+  file_url      String?          // Supabase Storage URL
+  text_answer   String?
+  status        AssignmentStatus @default(submitted)
+  marks         Int?
+  feedback      String?
+  submitted_at  DateTime         @default(now())
+  graded_at     DateTime?
 
-  assignment Assignment @relation(fields: [assignmentId], references: [id])
-  student    User       @relation(fields: [studentId], references: [id])
+  // Relations
+  assignment Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [student_id], references: [id])
+
+  @@unique([assignment_id, student_id])
+  @@index([assignment_id])
+  @@index([student_id])
+  @@map("assignment_submissions")
 }
 
-model ParentStudent {
-  id        String @id @default(uuid())
-  parentId  String
-  studentId String
+// ─────────────────────────────────────────────
+// SCHOOL OPERATIONS
+// ─────────────────────────────────────────────
 
-  parent  User @relation("ParentLinks", fields: [parentId], references: [id])
-  student User @relation("ChildLinks", fields: [studentId], references: [id])
+model Class {
+  id          String   @id @default(cuid())
+  school_id   String
+  name        String   // e.g. "Grade 9 - Section A"
+  grade       String?
+  section     String?
+  academic_year String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
-  @@unique([parentId, studentId])
+  // Relations
+  school     School         @relation(fields: [school_id], references: [id])
+  teachers   ClassTeacher[]
+  attendance Attendance[]
+
+  @@index([school_id])
+  @@map("classes")
+}
+
+model ClassTeacher {
+  id         String @id @default(cuid())
+  class_id   String
+  teacher_id String
+
+  class   Class @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  teacher User  @relation(fields: [teacher_id], references: [id])
+
+  @@unique([class_id, teacher_id])
+  @@map("class_teachers")
 }
 
 model Attendance {
-  id        String           @id @default(uuid())
-  classId   String
-  studentId String
-  date      DateTime         @db.Date
-  status    AttendanceStatus @default(PRESENT)
+  id         String           @id @default(cuid())
+  class_id   String
+  student_id String
+  date       DateTime         @db.Date
+  status     AttendanceStatus @default(present)
+  note       String?
+  created_at DateTime         @default(now())
 
-  class   Class @relation(fields: [classId], references: [id])
-  student User  @relation(fields: [studentId], references: [id])
+  // Relations
+  class   Class @relation(fields: [class_id], references: [id])
+  student User  @relation(fields: [student_id], references: [id])
 
-  @@unique([classId, studentId, date])
+  @@unique([class_id, student_id, date])
+  @@index([class_id])
+  @@index([student_id])
+  @@index([date])
+  @@map("attendance")
+}
+
+model ParentStudent {
+  id         String @id @default(cuid())
+  parent_id  String
+  student_id String
+
+  parent  User @relation("ParentRelation", fields: [parent_id], references: [id])
+  student User @relation("StudentRelation", fields: [student_id], references: [id])
+
+  @@unique([parent_id, student_id])
+  @@map("parent_students")
 }
 
 model Certificate {
-  id             String   @id @default(uuid())
-  studentId      String
-  courseId       String
-  certificateUrl String?
-  issuedAt       DateTime @default(now())
+  id          String            @id @default(cuid())
+  student_id  String
+  course_id   String
+  issued_at   DateTime          @default(now())
+  status      CertificateStatus @default(issued)
+  pdf_url     String?           // Supabase Storage URL
+  score       Int               // final score that triggered cert
 
-  student User   @relation(fields: [studentId], references: [id])
-  course  Course @relation(fields: [courseId], references: [id])
+  // Relations
+  student User   @relation(fields: [student_id], references: [id])
+  course  Course @relation(fields: [course_id], references: [id])
 
-  @@unique([studentId, courseId])
+  @@unique([student_id, course_id])
+  @@index([student_id])
+  @@map("certificates")
 }
+
+// ─────────────────────────────────────────────
+// BUSINESS / BILLING
+// ─────────────────────────────────────────────
+
+model StripeSubscription {
+  id                   String             @id @default(cuid())
+  school_id            String             @unique
+  stripe_customer_id   String             @unique
+  stripe_subscription_id String           @unique
+  plan                 PlanTier
+  status               SubscriptionStatus @default(trialing)
+  current_period_start DateTime
+  current_period_end   DateTime
+  cancel_at_period_end Boolean            @default(false)
+  created_at           DateTime           @default(now())
+  updated_at           DateTime           @updatedAt
+
+  // Relations
+  school School @relation(fields: [school_id], references: [id])
+
+  @@map("stripe_subscriptions")
+}
+
+// ─────────────────────────────────────────────
+// AI & COMMUNICATION
+// ─────────────────────────────────────────────
 
 model AiChatHistory {
-  id        String   @id @default(uuid())
-  studentId String
-  message   String
-  response  String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  student_id String
+  role       String   // "user" | "assistant"
+  content    String
+  created_at DateTime @default(now())
 
-  student User @relation(fields: [studentId], references: [id])
-}
+  // Relations
+  student User @relation(fields: [student_id], references: [id])
 
-model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String
-  body      String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  @@index([student_id])
+  @@index([created_at])
+  @@map("ai_chat_history")
 }
 
 model Message {
-  id         String   @id @default(uuid())
-  senderId   String
-  receiverId String
-  content    String
-  isRead     Boolean  @default(false)
-  sentAt     DateTime @default(now())
+  id          String   @id @default(cuid())
+  sender_id   String
+  receiver_id String
+  content     String
+  is_read     Boolean  @default(false)
+  sent_at     DateTime @default(now())
+  read_at     DateTime?
 
-  sender   User @relation("SentMessages", fields: [senderId], references: [id])
-  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  // Relations
+  sender   User @relation("Sender", fields: [sender_id], references: [id])
+  receiver User @relation("Receiver", fields: [receiver_id], references: [id])
+
+  @@index([sender_id])
+  @@index([receiver_id])
+  @@map("messages")
 }
+
+model Notification {
+  id        String           @id @default(cuid())
+  user_id   String
+  school_id String?
+  type      NotificationType
+  title     String
+  body      String
+  is_read   Boolean          @default(false)
+  meta      Json?            // extra data e.g. {course_id, assignment_id}
+  created_at DateTime        @default(now())
+
+  // Relations
+  user   User    @relation(fields: [user_id], references: [id])
+  school School? @relation(fields: [school_id], references: [id])
+
+  @@index([user_id])
+  @@index([is_read])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// SECURITY / AUDIT
+// ─────────────────────────────────────────────
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String
-  action    String
-  entity    String
-  meta      Json?
-  createdAt DateTime @default(now())
+  id        String   @id @default(cuid())
+  user_id   String?
+  school_id String?
+  action    String   // e.g. "user.login", "course.created", "stripe.upgraded"
+  entity    String?  // table name
+  entity_id String?  // row id
+  meta      Json?    // before/after snapshot
+  ip        String?
+  user_agent String?
+  created_at DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
-}
+  // Relations
+  user   User?   @relation(fields: [user_id], references: [id])
+  school School? @relation(fields: [school_id], references: [id])
 
-model StripeSubscription {
-  id                     String             @id @default(uuid())
-  schoolId               String             @unique
-  stripeCustomerId       String
-  stripeSubscriptionId   String
-  plan                   PlanType
-  status                 SubscriptionStatus @default(ACTIVE)
-  currentPeriodEnd       DateTime
-  createdAt              DateTime           @default(now())
-
-  school School @relation(fields: [schoolId], references: [id])
+  @@index([user_id])
+  @@index([school_id])
+  @@index([action])
+  @@index([created_at])
+  @@map("audit_logs")
 }
