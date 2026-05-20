@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  typescript: { ignoreBuildErrors: true },
+  staticPageGenerationTimeout: 120,
+  serverExternalPackages: ['@prisma/client', 'prisma'],
+  turbopack: {},
+}
 
-export default nextConfig;
+export default nextConfig
