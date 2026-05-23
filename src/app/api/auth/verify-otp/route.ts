@@ -17,34 +17,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
     }
 
-    if (!user.otpCode || !user.otpExpiresAt) {
+    if (!user.otp_code || !user.otp_expires_at) {
       return NextResponse.json({ success: false, error: 'No OTP requested' }, { status: 400 })
     }
 
-    if (new Date() > user.otpExpiresAt) {
+    if (new Date() > user.otp_expires_at) {
       return NextResponse.json({ success: false, error: 'OTP expired' }, { status: 400 })
     }
 
-    if (user.otpCode !== otp) {
+    if (user.otp_code !== otp) {
       return NextResponse.json({ success: false, error: 'Invalid OTP' }, { status: 400 })
     }
 
     await prisma.user.update({
       where: { email },
-      data: { otpCode: null, otpExpiresAt: null },
+      data: { otp_code: null, otp_expires_at: null },
     })
 
     const token = generateToken({
       id: user.id,
       email: user.email,
       role: user.role,
-      schoolId: user.schoolId,
-      name: user.name,
+      school_id: user.school_id,
+      name: `${user.first_name} ${user.last_name}`,
     })
 
     await prisma.auditLog.create({
       data: {
-        userId: user.id,
+        user_id: user.id,
         action: 'OTP_LOGIN',
         entity: 'User',
         meta: { email: user.email },
@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
         token,
         user: {
           id: user.id,
-          name: user.name,
+          name: `${user.first_name} ${user.last_name}`,
           email: user.email,
           role: user.role,
-          schoolId: user.schoolId,
+          school_id: user.school_id,
         },
       },
     })

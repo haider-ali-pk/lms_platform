@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, AttendanceStatus } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -345,7 +345,7 @@ async function main() {
       } catch {}
     }
 
-    const statuses = ['present', 'present', 'present', 'absent', 'late'] as const
+    const statuses: AttendanceStatus[] = ['present', 'present', 'present', 'absent', 'late']
     for (let d = 0; d < 7; d++) {
       const date = daysAgo(d)
       date.setHours(0, 0, 0, 0)

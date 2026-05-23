@@ -156,7 +156,7 @@ export default function SuperAdminDashboard() {
   ]
 
   return (
-    <DashboardLayout requiredRole="SUPER_ADMIN">
+   <DashboardLayout requiredRole="super_admin">
       <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
 
         {/* Top bar */}
@@ -239,7 +239,7 @@ export default function SuperAdminDashboard() {
                   </span>
                 </div>
               </div>
-              <div className="mt-4" style={{ height: 200 }}>
+              <div className="mt-4" style={{ height: 200, width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={revenueData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                     <defs>
@@ -257,7 +257,8 @@ export default function SuperAdminDashboard() {
                     <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
                     <Tooltip
                       contentStyle={{ border: '1px solid #E2E8F0', borderRadius: 10, fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
-                      formatter={(value: number | string) => [`$${Number(value).toLocaleString()}`, '']}
+                      formatter={(value: any) => [`$${Number(value).toLocaleString()}`, '']}
+
                     />
                     <Area type="monotone" dataKey="target" stroke="#06B6D4" strokeWidth={1.5} strokeDasharray="4 4" fill="url(#targetGrad)" dot={false} />
                     <Area type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={2} fill="url(#revGrad)" dot={{ r: 3, fill: '#4F46E5', strokeWidth: 0 }} activeDot={{ r: 5 }} />

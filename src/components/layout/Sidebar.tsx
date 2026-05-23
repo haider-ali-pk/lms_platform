@@ -154,7 +154,7 @@ export default function Sidebar({ role, userName, schoolName }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
 
-  const sections = navConfig[role] || []
+  const sections = navConfig[role?.toUpperCase()] || []
 
   function handleLogout() {
     localStorage.removeItem('token')

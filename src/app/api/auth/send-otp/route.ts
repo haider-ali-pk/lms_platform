@@ -1,5 +1,4 @@
 export const dynamic = 'force-dynamic'
-
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
 import nodemailer from 'nodemailer'
@@ -16,7 +15,6 @@ async function sendOTPEmail(email: string, otp: string, name: string) {
       pass: process.env.GMAIL_PASS,
     },
   })
-
   await transporter.sendMail({
     from: `"EduFlow LMS" <${process.env.GMAIL_USER}>`,
     to: email,
@@ -44,19 +42,23 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({ where: { email } })
+
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
     }
 
     const otp = generateOTP()
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000)
+    const otp_expires_at = new Date(Date.now() + 10 * 60 * 1000)
 
     await prisma.user.update({
       where: { email },
-      data: { otpCode: otp, otpExpiresAt },
+      data: {
+        otp_code: otp,
+        otp_expires_at,
+      },
     })
 
-    await sendOTPEmail(email, otp, user.name)
+    await sendOTPEmail(email, otp, `${user.first_name} ${user.last_name}`)
 
     return NextResponse.json({ success: true, message: 'OTP sent to your email' })
   } catch (error) {

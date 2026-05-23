@@ -7,26 +7,31 @@ import { comparePassword, generateToken } from '@/app/lib/auth'
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json()
+    console.log('LOGIN ATTEMPT:', email)
 
     if (!email || !password) {
       return NextResponse.json({ success: false, error: 'Email and password required' }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({ where: { email } })
+    console.log('USER FOUND:', !!user, 'IS_ACTIVE:', user?.is_active)
+
     if (!user) {
       return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 })
     }
 
-    if (!user.isActive) {
+    if (!user.is_active) {
       return NextResponse.json({ success: false, error: 'Account disabled' }, { status: 401 })
     }
 
-    const valid = await comparePassword(password, user.passwordHash)
+    const valid = await comparePassword(password, user.password_hash)
+    console.log('PASSWORD VALID:', valid)
+
     if (!valid) {
       return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 })
     }
 
-    if (user.twoFaEnabled) {
+    if (user.two_fa_enabled) {
       return NextResponse.json({
         success: true,
         data: { requires2FA: true, userId: user.id },
@@ -37,13 +42,13 @@ export async function POST(req: NextRequest) {
       id: user.id,
       email: user.email,
       role: user.role,
-      schoolId: user.schoolId,
-      name: user.name,
+      schoolId: user.school_id,
+      name: `${user.first_name} ${user.last_name}`,
     })
 
     await prisma.auditLog.create({
       data: {
-        userId: user.id,
+        user_id: user.id,
         action: 'LOGIN',
         entity: 'User',
         meta: { email: user.email },
@@ -56,10 +61,10 @@ export async function POST(req: NextRequest) {
         token,
         user: {
           id: user.id,
-          name: user.name,
+          name: `${user.first_name} ${user.last_name}`,
           email: user.email,
           role: user.role,
-          schoolId: user.schoolId,
+          schoolId: user.school_id,
         },
       },
     })
@@ -72,7 +77,8 @@ export async function POST(req: NextRequest) {
     })
 
     return response
-  } catch (error) {
+  } catch (err) {
+    console.error('LOGIN ERROR:', err)
     return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
   }
 }

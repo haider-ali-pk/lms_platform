@@ -38,11 +38,12 @@ export default function LoginPage() {
     localStorage.setItem('user', JSON.stringify(data.data.user))
 
     const role = data.data.user.role
-    if (role === 'SUPER_ADMIN') router.push('/super-admin')
-    else if (role === 'ADMIN') router.push('/admin')
-    else if (role === 'TEACHER') router.push('/teacher')
-    else if (role === 'STUDENT') router.push('/student')
-    else if (role === 'PARENT') router.push('/parent')
+    if (role === 'super_admin') router.push('/super-admin/dashboard')
+    else if (role === 'admin') router.push('/admin/dashboard')
+    else if (role === 'teacher') router.push('/teacher/dashboard')
+    else if (role === 'student') router.push('/student/dashboard')
+    else if (role === 'parent') router.push('/parent/dashboard')
+    else router.push('/super-admin/dashboard')
   }
 
   return (
