@@ -78,20 +78,19 @@ enum CertificateStatus {
 // ─────────────────────────────────────────────
 
 model School {
-  id             String   @id @default(cuid())
-  name           String
-  slug           String   @unique  // subdomain: beaconhouse.eduflow.pk
-  email          String
-  phone          String?
-  address        String?
-  city           String?
-  logo_url       String?
-  custom_domain  String?
-  is_active      Boolean  @default(true)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  email         String
+  phone         String?
+  address       String?
+  city          String?
+  logo_url      String?
+  custom_domain String?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
-  // Relations
   users               User[]
   courses             Course[]
   classes             Class[]
@@ -104,29 +103,28 @@ model School {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  school_id     String?   // null = super_admin (no school)
-  email         String    @unique
-  password_hash String
-  role          Role
-  first_name    String
-  last_name     String
-  phone         String?
-  avatar_url    String?
-  is_active     Boolean   @default(true)
-  is_verified   Boolean   @default(false)
-  two_fa_secret String?
-  two_fa_enabled Boolean  @default(false)
-  otp_code      String?
+  id             String    @id @default(cuid())
+  school_id      String?
+  email          String    @unique
+  password_hash  String
+  role           Role
+  first_name     String
+  last_name      String
+  phone          String?
+  avatar_url     String?
+  is_active      Boolean   @default(true)
+  is_verified    Boolean   @default(false)
+  two_fa_secret  String?
+  two_fa_enabled Boolean   @default(false)
+  otp_code       String?
   otp_expires_at DateTime?
   last_login_at  DateTime?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-  deleted_at    DateTime? // soft delete
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  deleted_at     DateTime?
 
-  // Relations
-  school                School?              @relation(fields: [school_id], references: [id])
-  courses_created       Course[]             @relation("CourseAuthor")
+  school                School?               @relation(fields: [school_id], references: [id])
+  courses_created       Course[]              @relation("CourseAuthor")
   enrollments           Enrollment[]
   lesson_progress       LessonProgress[]
   quiz_attempts         QuizAttempt[]
@@ -134,12 +132,12 @@ model User {
   attendance_records    Attendance[]
   certificates          Certificate[]
   ai_chat_history       AiChatHistory[]
-  messages_sent         Message[]            @relation("Sender")
-  messages_received     Message[]            @relation("Receiver")
+  messages_sent         Message[]             @relation("Sender")
+  messages_received     Message[]             @relation("Receiver")
   notifications         Notification[]
   audit_logs            AuditLog[]
-  children              ParentStudent[]      @relation("ParentRelation")
-  parents               ParentStudent[]      @relation("StudentRelation")
+  children              ParentStudent[]       @relation("ParentRelation")
+  parents               ParentStudent[]       @relation("StudentRelation")
   classes_teaching      ClassTeacher[]
 
   @@index([school_id])
@@ -154,21 +152,20 @@ model User {
 // ─────────────────────────────────────────────
 
 model Course {
-  id           String   @id @default(cuid())
-  school_id    String
-  author_id    String
-  title        String
-  description  String?
+  id            String    @id @default(cuid())
+  school_id     String
+  author_id     String
+  title         String
+  description   String?
   thumbnail_url String?
-  subject      String?
-  grade_level  String?
-  is_published Boolean  @default(false)
-  pass_mark    Int      @default(60) // % to earn certificate
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-  deleted_at   DateTime?
+  subject       String?
+  grade_level   String?
+  is_published  Boolean   @default(false)
+  pass_mark     Int       @default(60)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
 
-  // Relations
   school      School       @relation(fields: [school_id], references: [id])
   author      User         @relation("CourseAuthor", fields: [author_id], references: [id])
   lessons     Lesson[]
@@ -186,17 +183,16 @@ model Lesson {
   id           String     @id @default(cuid())
   course_id    String
   title        String
-  content      String?    // text content or description
+  content      String?
   video_url    String?
   pdf_url      String?
   type         LessonType @default(video)
   order        Int        @default(0)
-  duration_min Int?       // video length in minutes
+  duration_min Int?
   is_published Boolean    @default(false)
   created_at   DateTime   @default(now())
   updated_at   DateTime   @updatedAt
 
-  // Relations
   course   Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
   progress LessonProgress[]
 
@@ -206,13 +202,12 @@ model Lesson {
 }
 
 model Enrollment {
-  id          String   @id @default(cuid())
-  student_id  String
-  course_id   String
-  enrolled_at DateTime @default(now())
+  id           String    @id @default(cuid())
+  student_id   String
+  course_id    String
+  enrolled_at  DateTime  @default(now())
   completed_at DateTime?
 
-  // Relations
   student User   @relation(fields: [student_id], references: [id])
   course  Course @relation(fields: [course_id], references: [id])
 
@@ -223,16 +218,15 @@ model Enrollment {
 }
 
 model LessonProgress {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   student_id   String
   lesson_id    String
-  is_completed Boolean  @default(false)
-  watch_time   Int?     // seconds watched
+  is_completed Boolean   @default(false)
+  watch_time   Int?
   completed_at DateTime?
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
 
-  // Relations
   student User   @relation(fields: [student_id], references: [id])
   lesson  Lesson @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
 
@@ -250,15 +244,14 @@ model Quiz {
   course_id    String
   title        String
   description  String?
-  time_limit   Int?     // minutes, null = no limit
+  time_limit   Int?
   pass_mark    Int      @default(60)
   max_attempts Int      @default(3)
   is_published Boolean  @default(false)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  // Relations
-  course    Course        @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  course    Course         @relation(fields: [course_id], references: [id], onDelete: Cascade)
   questions QuizQuestion[]
   attempts  QuizAttempt[]
 
@@ -267,16 +260,15 @@ model Quiz {
 }
 
 model QuizQuestion {
-  id            String   @id @default(cuid())
+  id            String @id @default(cuid())
   quiz_id       String
   question_text String
-  options       Json     // ["Option A", "Option B", "Option C", "Option D"]
-  correct_index Int      // 0-based index of correct option
+  options       Json
+  correct_index Int
   explanation   String?
-  points        Int      @default(1)
-  order         Int      @default(0)
+  points        Int    @default(1)
+  order         Int    @default(0)
 
-  // Relations
   quiz Quiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
 
   @@index([quiz_id])
@@ -284,16 +276,15 @@ model QuizQuestion {
 }
 
 model QuizAttempt {
-  id          String   @id @default(cuid())
-  quiz_id     String
-  student_id  String
-  answers     Json     // {question_id: selected_index}
-  score       Int      // percentage 0-100
-  passed      Boolean
-  time_taken  Int?     // seconds
+  id           String   @id @default(cuid())
+  quiz_id      String
+  student_id   String
+  answers      Json
+  score        Int
+  passed       Boolean
+  time_taken   Int?
   submitted_at DateTime @default(now())
 
-  // Relations
   quiz    Quiz @relation(fields: [quiz_id], references: [id])
   student User @relation(fields: [student_id], references: [id])
 
@@ -317,7 +308,6 @@ model Assignment {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  // Relations
   course      Course                 @relation(fields: [course_id], references: [id], onDelete: Cascade)
   submissions AssignmentSubmission[]
 
@@ -329,7 +319,7 @@ model AssignmentSubmission {
   id            String           @id @default(cuid())
   assignment_id String
   student_id    String
-  file_url      String?          // Supabase Storage URL
+  file_url      String?
   text_answer   String?
   status        AssignmentStatus @default(submitted)
   marks         Int?
@@ -337,7 +327,6 @@ model AssignmentSubmission {
   submitted_at  DateTime         @default(now())
   graded_at     DateTime?
 
-  // Relations
   assignment Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
   student    User       @relation(fields: [student_id], references: [id])
 
@@ -352,16 +341,15 @@ model AssignmentSubmission {
 // ─────────────────────────────────────────────
 
 model Class {
-  id          String   @id @default(cuid())
-  school_id   String
-  name        String   // e.g. "Grade 9 - Section A"
-  grade       String?
-  section     String?
+  id            String   @id @default(cuid())
+  school_id     String
+  name          String
+  grade         String?
+  section       String?
   academic_year String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
-  // Relations
   school     School         @relation(fields: [school_id], references: [id])
   teachers   ClassTeacher[]
   attendance Attendance[]
@@ -391,7 +379,6 @@ model Attendance {
   note       String?
   created_at DateTime         @default(now())
 
-  // Relations
   class   Class @relation(fields: [class_id], references: [id])
   student User  @relation(fields: [student_id], references: [id])
 
@@ -415,15 +402,14 @@ model ParentStudent {
 }
 
 model Certificate {
-  id          String            @id @default(cuid())
-  student_id  String
-  course_id   String
-  issued_at   DateTime          @default(now())
-  status      CertificateStatus @default(issued)
-  pdf_url     String?           // Supabase Storage URL
-  score       Int               // final score that triggered cert
+  id         String            @id @default(cuid())
+  student_id String
+  course_id  String
+  issued_at  DateTime          @default(now())
+  status     CertificateStatus @default(issued)
+  pdf_url    String?
+  score      Int
 
-  // Relations
   student User   @relation(fields: [student_id], references: [id])
   course  Course @relation(fields: [course_id], references: [id])
 
@@ -437,19 +423,18 @@ model Certificate {
 // ─────────────────────────────────────────────
 
 model StripeSubscription {
-  id                   String             @id @default(cuid())
-  school_id            String             @unique
-  stripe_customer_id   String             @unique
-  stripe_subscription_id String           @unique
-  plan                 PlanTier
-  status               SubscriptionStatus @default(trialing)
-  current_period_start DateTime
-  current_period_end   DateTime
-  cancel_at_period_end Boolean            @default(false)
-  created_at           DateTime           @default(now())
-  updated_at           DateTime           @updatedAt
+  id                     String             @id @default(cuid())
+  school_id              String             @unique
+  stripe_customer_id     String             @unique
+  stripe_subscription_id String             @unique
+  plan                   PlanTier
+  status                 SubscriptionStatus @default(trialing)
+  current_period_start   DateTime
+  current_period_end     DateTime
+  cancel_at_period_end   Boolean            @default(false)
+  created_at             DateTime           @default(now())
+  updated_at             DateTime           @updatedAt
 
-  // Relations
   school School @relation(fields: [school_id], references: [id])
 
   @@map("stripe_subscriptions")
@@ -462,11 +447,10 @@ model StripeSubscription {
 model AiChatHistory {
   id         String   @id @default(cuid())
   student_id String
-  role       String   // "user" | "assistant"
+  role       String
   content    String
   created_at DateTime @default(now())
 
-  // Relations
   student User @relation(fields: [student_id], references: [id])
 
   @@index([student_id])
@@ -475,15 +459,14 @@ model AiChatHistory {
 }
 
 model Message {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   sender_id   String
   receiver_id String
   content     String
-  is_read     Boolean  @default(false)
-  sent_at     DateTime @default(now())
+  is_read     Boolean   @default(false)
+  sent_at     DateTime  @default(now())
   read_at     DateTime?
 
-  // Relations
   sender   User @relation("Sender", fields: [sender_id], references: [id])
   receiver User @relation("Receiver", fields: [receiver_id], references: [id])
 
@@ -493,21 +476,22 @@ model Message {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  user_id   String
-  school_id String?
-  type      NotificationType
-  title     String
-  body      String
-  is_read   Boolean          @default(false)
-  meta      Json?            // extra data e.g. {course_id, assignment_id}
-  created_at DateTime        @default(now())
+  id         String           @id @default(cuid())
+  user_id    String?
+  school_id  String?
+  scope      String           @default("user")  // "all" | "school:{id}" | "user"
+  type       NotificationType
+  title      String
+  body       String
+  is_read    Boolean          @default(false)
+  meta       Json?
+  created_at DateTime         @default(now())
 
-  // Relations
-  user   User    @relation(fields: [user_id], references: [id])
+  user   User?   @relation(fields: [user_id], references: [id])
   school School? @relation(fields: [school_id], references: [id])
 
   @@index([user_id])
+  @@index([scope])
   @@index([is_read])
   @@map("notifications")
 }
@@ -517,18 +501,17 @@ model Notification {
 // ─────────────────────────────────────────────
 
 model AuditLog {
-  id        String   @id @default(cuid())
-  user_id   String?
-  school_id String?
-  action    String   // e.g. "user.login", "course.created", "stripe.upgraded"
-  entity    String?  // table name
-  entity_id String?  // row id
-  meta      Json?    // before/after snapshot
-  ip        String?
+  id         String   @id @default(cuid())
+  user_id    String?
+  school_id  String?
+  action     String
+  entity     String?
+  entity_id  String?
+  meta       Json?
+  ip         String?
   user_agent String?
   created_at DateTime @default(now())
 
-  // Relations
   user   User?   @relation(fields: [user_id], references: [id])
   school School? @relation(fields: [school_id], references: [id])
 
