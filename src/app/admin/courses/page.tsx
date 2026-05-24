@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-interface Teacher {
+interface Author {
   id: string;
   first_name: string;
   last_name: string;
@@ -36,7 +36,7 @@ interface Course {
   description: string | null;
   is_published: boolean;
   created_at: string;
-  teacher: Teacher;
+  author: Author;
   enrollments: Enrollment[];
   _count: CourseCount;
 }
@@ -55,19 +55,16 @@ export default function ManageCoursesPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Edit modal
   const [editCourse, setEditCourse] = useState<Course | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ title: "", description: "", is_published: false });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState("");
 
-  // Enroll modal
   const [enrollCourse, setEnrollCourse] = useState<Course | null>(null);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
   const [enrolling, setEnrolling] = useState(false);
 
-  // View enrolled modal
   const [viewCourse, setViewCourse] = useState<Course | null>(null);
   const [unenrolling, setUnenrolling] = useState<string | null>(null);
 
@@ -97,11 +94,11 @@ export default function ManageCoursesPage() {
 
   async function fetchAllStudents() {
     try {
-      const res = await fetch(`/api/admin/students?limit=10000&page=1`, {
+      const res = await fetch(`/api/admin/users?role=student&limit=10000&page=1`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const data = await res.json();
-      setAllStudents(data.students || []);
+      setAllStudents(data.users || []);
     } catch {
       setAllStudents([]);
     }
@@ -286,10 +283,10 @@ export default function ManageCoursesPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-xs">
-                        {c.teacher.first_name[0]}{c.teacher.last_name[0]}
+                        {c.author.first_name[0]}{c.author.last_name[0]}
                       </div>
                       <span className="text-gray-700 text-xs">
-                        {c.teacher.first_name} {c.teacher.last_name}
+                        {c.author.first_name} {c.author.last_name}
                       </span>
                     </div>
                   </td>
