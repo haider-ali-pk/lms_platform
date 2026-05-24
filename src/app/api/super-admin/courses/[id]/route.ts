@@ -4,15 +4,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/app/lib/prisma"
 import { getUserFromRequest } from "@/app/lib/auth"
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params
     const user = getUserFromRequest(req)
     if (!user || user.role !== "super_admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const course = await prisma.course.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         title: true,
@@ -47,8 +48,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const completedLessons = await prisma.lessonProgress.count({
           where: {
             student_id: e.student.id,
-            lesson: { course_id: params.id },
-            completed: true,
+            lesson: { course_id: id },
+            is_completed: true,
           },
         })
         return {
@@ -84,8 +85,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params
     const user = getUserFromRequest(req)
     if (!user || user.role !== "super_admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -95,7 +97,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const { title, subject, grade_level, is_published } = body
 
     const updated = await prisma.course.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(title        !== undefined && { title }),
         ...(subject      !== undefined && { subject }),

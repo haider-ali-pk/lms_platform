@@ -1,0 +1,8 @@
+{
+  "site_name": "EduFlow LMS",
+  "logo_url": "https://i.imgur.com/KktTTEP.jpeg",
+  "support_email": "support@eduflow.pk",
+  "notify_new_school": true,
+  "notify_new_user": true,
+  "notify_billing": true
+}
