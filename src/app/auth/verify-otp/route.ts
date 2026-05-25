@@ -24,15 +24,16 @@ export async function POST(req: NextRequest) {
 
     // Issue final JWT
     const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-        school_id: user.school_id,
-        is_active: user.is_active,
-      },
-      SECRET,
-      { expiresIn: "7d" }
-    );
+  {
+    id: user.id,
+    role: user.role,
+    school_id: user.school_id,
+    is_active: user.is_active,
+    last_password_change: user.last_password_change,
+  },
+  SECRET,
+  { expiresIn: "7d" }
+);
 
     const res = NextResponse.json({ success: true, role: user.role });
     res.cookies.set("token", token, {

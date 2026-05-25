@@ -55,13 +55,14 @@ export async function middleware(req: NextRequest) {
   }
 
   // Verify token
-  let payload: {
+ let payload: {
     id: string;
     role: string;
     school_id?: string;
     is_active?: boolean;
     locked_until?: string;
     fee_blocked?: boolean;
+    last_password_change?: string;
   };
 
   try {
@@ -94,7 +95,18 @@ export async function middleware(req: NextRequest) {
     url.searchParams.set("locked", "true");
     return NextResponse.redirect(url);
   }
-
+// Password expiry check — skip for API and auth routes
+  if (!pathname.startsWith("/api") && !pathname.startsWith("/password-expired")) {
+    const lastChange = payload.last_password_change as string | undefined;
+    const isExpired = !lastChange ||
+      (Date.now() - new Date(lastChange).getTime()) > 7 * 24 * 60 * 60 * 1000;
+    if (isExpired) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/password-expired";
+      url.searchParams.set("userId", payload.id);
+      return NextResponse.redirect(url);
+    }
+  }
   // Determine which portal this request is for
   const requestedPortal = Object.entries(ROLE_PREFIXES).find(([, prefix]) =>
     pathname.startsWith(prefix)
