@@ -1,6 +1,5 @@
 // prisma/schema.prisma
-// EduFlow LMS — Full Schema v1.0
-// Multi-tenant SaaS · Pakistan · 21,011 users · 10 schools
+// EduFlow LMS — Full Schema v2.0
 
 generator client {
   provider = "prisma-client-js"
@@ -73,6 +72,49 @@ enum CertificateStatus {
   revoked
 }
 
+enum EnrollmentRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum FeeStatus {
+  pending
+  paid
+  overdue
+}
+
+enum AnnouncementType {
+  info
+  warning
+  urgent
+}
+
+enum LiveClassStatus {
+  scheduled
+  live
+  ended
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
+}
+
+enum BadgeTriggerType {
+  first_lesson
+  quick_learner
+  perfect_score
+  course_champion
+  streak_master
+  assignment_ace
+  social_star
+  early_bird
+  night_owl
+  top_of_class
+}
+
 // ─────────────────────────────────────────────
 // CORE TABLES
 // ─────────────────────────────────────────────
@@ -86,6 +128,7 @@ model School {
   address       String?
   city          String?
   logo_url      String?
+  primary_color String?
   custom_domain String?
   is_active     Boolean  @default(true)
   created_at    DateTime @default(now())
@@ -97,32 +140,39 @@ model School {
   stripe_subscription StripeSubscription?
   audit_logs          AuditLog[]
   notifications       Notification[]
-enrollment_requests EnrollmentRequest[]
+  enrollment_requests EnrollmentRequest[]
+  announcements       Announcement[]
+  fee_payments        FeePayment[]
+
   @@index([slug])
   @@map("schools")
 }
 
 model User {
-  id             String    @id @default(cuid())
-  school_id      String?
-  email          String    @unique
-  password_hash  String
-  role           Role
-  first_name     String
-  last_name      String
-  phone          String?
-  avatar_url     String?
-  is_active      Boolean   @default(true)
-  is_verified    Boolean   @default(false)
-  two_fa_secret  String?
-  two_fa_enabled Boolean   @default(false)
-  otp_code       String?
-  otp_expires_at DateTime?
-  last_login_at  DateTime?
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @updatedAt
-  deleted_at     DateTime?
-  ai_chat_sessions AiChatSession[]
+  id                  String    @id @default(cuid())
+  school_id           String?
+  email               String    @unique
+  password_hash       String
+  role                Role
+  first_name          String
+  last_name           String
+  phone               String?
+  avatar_url          String?
+  is_active           Boolean   @default(true)
+  is_verified         Boolean   @default(false)
+  two_fa_secret       String?
+  two_fa_enabled      Boolean   @default(false)
+  otp_code            String?
+  otp_expires_at      DateTime?
+  last_login_at       DateTime?
+  last_password_change DateTime?
+  preferred_language  String    @default("en")
+  theme               String    @default("light")
+  login_attempts      Int       @default(0)
+  locked_until        DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  deleted_at          DateTime?
 
   school                School?               @relation(fields: [school_id], references: [id])
   courses_created       Course[]              @relation("CourseAuthor")
@@ -131,9 +181,10 @@ model User {
   quiz_attempts         QuizAttempt[]
   assignments_submitted AssignmentSubmission[]
   attendance_records    Attendance[]
- certificates          Certificate[]  @relation("StudentCertificates")
-certificates_issued   Certificate[]  @relation("IssuedCertificates")
+  certificates          Certificate[]         @relation("StudentCertificates")
+  certificates_issued   Certificate[]         @relation("IssuedCertificates")
   ai_chat_history       AiChatHistory[]
+  ai_chat_sessions      AiChatSession[]
   messages_sent         Message[]             @relation("Sender")
   messages_received     Message[]             @relation("Receiver")
   notifications         Notification[]
@@ -141,12 +192,59 @@ certificates_issued   Certificate[]  @relation("IssuedCertificates")
   children              ParentStudent[]       @relation("ParentRelation")
   parents               ParentStudent[]       @relation("StudentRelation")
   classes_teaching      ClassTeacher[]
+  otps                  Otp[]
+  password_reset_tokens PasswordResetToken[]
+  announcements         Announcement[]
+  fee_payments          FeePayment[]
+  student_badges        StudentBadge[]
+  learning_streak       LearningStreak?
+  course_reviews        CourseReview[]
+  discussion_posts      DiscussionPost[]
+  discussion_replies    DiscussionReply[]
+  live_classes          LiveClass[]
+  booking_slots_teacher    BookingSlot[]   @relation("TeacherBookings")
+  booking_slots_student    BookingSlot[]   @relation("StudentBookings")
+  video_progress           VideoProgress[]
+  timetable_slots_teaching TimetableSlot[] @relation("TimetableTeacher")
 
   @@index([school_id])
   @@index([email])
   @@index([role])
   @@index([deleted_at])
   @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// AUTH MODELS
+// ─────────────────────────────────────────────
+
+model Otp {
+  id         String   @id @default(cuid())
+  user_id    String
+  code       String
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("otps")
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([token])
+  @@map("password_reset_tokens")
 }
 
 // ─────────────────────────────────────────────
@@ -168,13 +266,17 @@ model Course {
   updated_at    DateTime  @updatedAt
   deleted_at    DateTime?
 
-  school      School       @relation(fields: [school_id], references: [id])
-  author      User         @relation("CourseAuthor", fields: [author_id], references: [id])
-  lessons     Lesson[]
-  quizzes     Quiz[]
-  assignments Assignment[]
-  enrollments Enrollment[]
-  certificates Certificate[]
+  school          School           @relation(fields: [school_id], references: [id])
+  author          User             @relation("CourseAuthor", fields: [author_id], references: [id])
+  lessons         Lesson[]
+  quizzes         Quiz[]
+  assignments     Assignment[]
+  enrollments     Enrollment[]
+  certificates    Certificate[]
+  course_reviews  CourseReview[]
+  discussion_posts DiscussionPost[]
+  live_classes    LiveClass[]
+  timetable_slots TimetableSlot[]
 
   @@index([school_id])
   @@index([author_id])
@@ -195,8 +297,9 @@ model Lesson {
   created_at   DateTime   @default(now())
   updated_at   DateTime   @updatedAt
 
-  course   Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
-  progress LessonProgress[]
+  course         Course          @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  progress       LessonProgress[]
+  video_progress VideoProgress[]
 
   @@index([course_id])
   @@index([order])
@@ -235,6 +338,23 @@ model LessonProgress {
   @@unique([student_id, lesson_id])
   @@index([student_id])
   @@map("lesson_progress")
+}
+
+model VideoProgress {
+  id                String   @id @default(cuid())
+  student_id        String
+  lesson_id         String
+  timestamp_seconds Int      @default(0)
+  completed         Boolean  @default(false)
+  updated_at        DateTime @updatedAt
+
+  student User   @relation(fields: [student_id], references: [id])
+  lesson  Lesson @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  @@unique([student_id, lesson_id])
+  @@index([student_id])
+  @@index([lesson_id])
+  @@map("video_progress")
 }
 
 // ─────────────────────────────────────────────
@@ -352,9 +472,10 @@ model Class {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  school     School         @relation(fields: [school_id], references: [id])
-  teachers   ClassTeacher[]
-  attendance Attendance[]
+  school          School          @relation(fields: [school_id], references: [id])
+  teachers        ClassTeacher[]
+  attendance      Attendance[]
+  timetable_slots TimetableSlot[]
 
   @@index([school_id])
   @@map("classes")
@@ -424,6 +545,240 @@ model Certificate {
 }
 
 // ─────────────────────────────────────────────
+// ANNOUNCEMENTS
+// ─────────────────────────────────────────────
+
+model Announcement {
+  id          String           @id @default(cuid())
+  school_id   String
+  author_id   String
+  title       String
+  body        String
+  type        AnnouncementType @default(info)
+  target_role Role?
+  is_pinned   Boolean          @default(false)
+  created_at  DateTime         @default(now())
+
+  school School @relation(fields: [school_id], references: [id])
+  author User   @relation(fields: [author_id], references: [id])
+
+  @@index([school_id])
+  @@index([author_id])
+  @@map("announcements")
+}
+
+// ─────────────────────────────────────────────
+// MESSAGING
+// ─────────────────────────────────────────────
+
+model Message {
+  id          String    @id @default(cuid())
+  sender_id   String
+  receiver_id String
+  subject     String?
+  body        String
+  is_read     Boolean   @default(false)
+  parent_id   String?
+  sent_at     DateTime  @default(now())
+  read_at     DateTime?
+
+  sender   User     @relation("Sender", fields: [sender_id], references: [id])
+  receiver User     @relation("Receiver", fields: [receiver_id], references: [id])
+  parent   Message? @relation("MessageThread", fields: [parent_id], references: [id])
+  replies  Message[] @relation("MessageThread")
+
+  @@index([sender_id])
+  @@index([receiver_id])
+  @@index([parent_id])
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────
+// FEE PAYMENTS
+// ─────────────────────────────────────────────
+
+model FeePayment {
+  id                String    @id @default(cuid())
+  student_id        String
+  school_id         String
+  amount            Float
+  due_date          DateTime
+  paid_at           DateTime?
+  stripe_session_id String?
+  status            FeeStatus @default(pending)
+  created_at        DateTime  @default(now())
+
+  student User   @relation(fields: [student_id], references: [id])
+  school  School @relation(fields: [school_id], references: [id])
+
+  @@index([student_id])
+  @@index([school_id])
+  @@index([status])
+  @@map("fee_payments")
+}
+
+// ─────────────────────────────────────────────
+// TIMETABLE
+// ─────────────────────────────────────────────
+
+model TimetableSlot {
+  id          String   @id @default(cuid())
+  class_id    String
+  course_id   String
+  teacher_id  String
+  day_of_week Int      // 0=Mon, 1=Tue, ... 4=Fri
+  start_time  String   // "08:00"
+  end_time    String   // "09:00"
+  room        String?
+
+  class  Class  @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [course_id], references: [id])
+  teacher User  @relation("TimetableTeacher", fields: [teacher_id], references: [id])
+
+  @@index([class_id])
+  @@index([teacher_id])
+  @@map("timetable_slots")
+}
+
+// ─────────────────────────────────────────────
+// GAMIFICATION
+// ─────────────────────────────────────────────
+
+model Badge {
+  id           String           @id @default(cuid())
+  name         String
+  description  String
+  icon         String
+  color        String
+  trigger_type BadgeTriggerType @unique
+
+  student_badges StudentBadge[]
+
+  @@map("badges")
+}
+
+model StudentBadge {
+  id         String   @id @default(cuid())
+  student_id String
+  badge_id   String
+  earned_at  DateTime @default(now())
+
+  student User  @relation(fields: [student_id], references: [id])
+  badge   Badge @relation(fields: [badge_id], references: [id])
+
+  @@unique([student_id, badge_id])
+  @@index([student_id])
+  @@map("student_badges")
+}
+
+model LearningStreak {
+  id                 String   @id @default(cuid())
+  student_id         String   @unique
+  current_streak     Int      @default(0)
+  longest_streak     Int      @default(0)
+  last_activity_date DateTime?
+
+  student User @relation(fields: [student_id], references: [id])
+
+  @@map("learning_streaks")
+}
+
+// ─────────────────────────────────────────────
+// COURSE ENGAGEMENT
+// ─────────────────────────────────────────────
+
+model CourseReview {
+  id          String   @id @default(cuid())
+  course_id   String
+  student_id  String
+  rating      Int      // 1-5
+  review_text String?
+  created_at  DateTime @default(now())
+
+  course  Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [student_id], references: [id])
+
+  @@unique([course_id, student_id])
+  @@index([course_id])
+  @@map("course_reviews")
+}
+
+model DiscussionPost {
+  id         String   @id @default(cuid())
+  course_id  String
+  author_id  String
+  title      String
+  body       String
+  is_pinned  Boolean  @default(false)
+  upvotes    Int      @default(0)
+  created_at DateTime @default(now())
+
+  course  Course            @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  author  User              @relation(fields: [author_id], references: [id])
+  replies DiscussionReply[]
+
+  @@index([course_id])
+  @@map("discussion_posts")
+}
+
+model DiscussionReply {
+  id         String   @id @default(cuid())
+  post_id    String
+  author_id  String
+  body       String
+  upvotes    Int      @default(0)
+  created_at DateTime @default(now())
+
+  post   DiscussionPost @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  author User           @relation(fields: [author_id], references: [id])
+
+  @@index([post_id])
+  @@map("discussion_replies")
+}
+
+// ─────────────────────────────────────────────
+// LIVE CLASSES & BOOKING
+// ─────────────────────────────────────────────
+
+model LiveClass {
+  id            String          @id @default(cuid())
+  course_id     String
+  teacher_id    String
+  title         String
+  scheduled_at  DateTime
+  meeting_url   String?
+  recording_url String?
+  status        LiveClassStatus @default(scheduled)
+  created_at    DateTime        @default(now())
+
+  course  Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  teacher User   @relation(fields: [teacher_id], references: [id])
+
+  @@index([course_id])
+  @@index([teacher_id])
+  @@map("live_classes")
+}
+
+model BookingSlot {
+  id          String        @id @default(cuid())
+  teacher_id  String
+  student_id  String
+  date        DateTime      @db.Date
+  start_time  String
+  end_time    String
+  meeting_url String?
+  status      BookingStatus @default(pending)
+  created_at  DateTime      @default(now())
+
+  teacher User @relation("TeacherBookings", fields: [teacher_id], references: [id])
+  student User @relation("StudentBookings", fields: [student_id], references: [id])
+
+  @@index([teacher_id])
+  @@index([student_id])
+  @@map("booking_slots")
+}
+
+// ─────────────────────────────────────────────
 // BUSINESS / BILLING
 // ─────────────────────────────────────────────
 
@@ -463,28 +818,43 @@ model AiChatHistory {
   @@map("ai_chat_history")
 }
 
-model Message {
-  id          String    @id @default(cuid())
-  sender_id   String
-  receiver_id String
-  content     String
-  is_read     Boolean   @default(false)
-  sent_at     DateTime  @default(now())
-  read_at     DateTime?
+model AiChatSession {
+  id         String   @id @default(cuid())
+  user_id    String
+  title      String
+  subject    String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  sender   User @relation("Sender", fields: [sender_id], references: [id])
-  receiver User @relation("Receiver", fields: [receiver_id], references: [id])
+  user     User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages AiChatMessage[]
 
-  @@index([sender_id])
-  @@index([receiver_id])
-  @@map("messages")
+  @@index([user_id])
+  @@map("ai_chat_sessions")
 }
+
+model AiChatMessage {
+  id         String   @id @default(cuid())
+  session_id String
+  role       String
+  content    String
+  created_at DateTime @default(now())
+
+  session AiChatSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
+  @@index([session_id])
+  @@map("ai_chat_messages")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
 
 model Notification {
   id         String           @id @default(cuid())
   user_id    String?
   school_id  String?
-  scope      String           @default("user")  // "all" | "school:{id}" | "user"
+  scope      String           @default("user")
   type       NotificationType
   title      String
   body       String
@@ -526,24 +896,23 @@ model AuditLog {
   @@index([created_at])
   @@map("audit_logs")
 }
-enum EnrollmentRequestStatus {
-  pending
-  approved
-  rejected
-}
+
+// ─────────────────────────────────────────────
+// ENROLLMENT REQUESTS
+// ─────────────────────────────────────────────
 
 model EnrollmentRequest {
-  id           String                  @id @default(cuid())
-  school_id    String
-  student_name String
-  parent_name  String
-  phone        String
-  grade        String
-  date_of_birth DateTime              @db.Date
-  status       EnrollmentRequestStatus @default(pending)
-  notes        String?
-  created_at   DateTime               @default(now())
-  updated_at   DateTime               @updatedAt
+  id            String                  @id @default(cuid())
+  school_id     String
+  student_name  String
+  parent_name   String
+  phone         String
+  grade         String
+  date_of_birth DateTime                @db.Date
+  status        EnrollmentRequestStatus @default(pending)
+  notes         String?
+  created_at    DateTime                @default(now())
+  updated_at    DateTime                @updatedAt
 
   school School @relation(fields: [school_id], references: [id])
 
@@ -551,30 +920,10 @@ model EnrollmentRequest {
   @@index([status])
   @@map("enrollment_requests")
 }
-model AiChatSession {
-  id         String   @id @default(cuid())
-  user_id    String
-  title      String
-  subject    String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
 
-  user     User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  messages AiChatMessage[]
+// ─────────────────────────────────────────────
+// TIMETABLE (Course relation added)
+// ─────────────────────────────────────────────
 
-  @@index([user_id])
-  @@map("ai_chat_sessions")
-}
-
-model AiChatMessage {
-  id         String   @id @default(cuid())
-  session_id String
-  role       String   // "user" | "assistant"
-  content    String
-  created_at DateTime @default(now())
-
-  session AiChatSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
-
-  @@index([session_id])
-  @@map("ai_chat_messages")
-}
+// TimetableSlot already references Course — add back-relation on Course:
+// Done above in Course model via timetable_slots
