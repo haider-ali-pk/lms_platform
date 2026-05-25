@@ -348,7 +348,12 @@ export default function CourseDetailPage() {
                   <span className="text-gray-400 text-sm font-mono w-6">{idx + 1}</span>
                   <span className="text-xl">{TYPE_ICONS[lesson.type]}</span>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-800 text-sm">{lesson.title}</p>
+                    <p
+  className="font-medium text-gray-800 text-sm cursor-pointer hover:text-indigo-600 transition-colors"
+  onClick={() => router.push(`/teacher/courses/${courseId}/lessons/${lesson.id}`)}
+>
+  {lesson.title}
+</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {lesson.type}{lesson.duration_min ? ` · ${lesson.duration_min} min` : ""}
                     </p>
