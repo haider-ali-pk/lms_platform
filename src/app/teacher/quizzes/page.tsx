@@ -41,7 +41,8 @@ export default function TeacherQuizzesPage() {
   useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
-    setLoading(true);
+  setLoading(true);
+  try {
     const [qRes, cRes] = await Promise.all([
       fetch("/api/teacher/quizzes"),
       fetch("/api/teacher/courses-list"),
@@ -51,8 +52,12 @@ export default function TeacherQuizzesPage() {
     setQuizzes(qData.quizzes || []);
     setCourses(cData.courses || []);
     setStats(qData.stats || { total: 0, published: 0, attempts: 0, avgScore: 0 });
-    setLoading(false);
+  } catch (err) {
+    console.error("Failed to fetch quizzes:", err);
+  } finally {
+    setLoading(false);  // ← this was missing — always runs even on error
   }
+}
 
   async function handleDelete(id: string) {
     await fetch(`/api/teacher/quizzes/${id}`, { method: "DELETE" });
