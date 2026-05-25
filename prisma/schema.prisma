@@ -131,7 +131,8 @@ model User {
   quiz_attempts         QuizAttempt[]
   assignments_submitted AssignmentSubmission[]
   attendance_records    Attendance[]
-  certificates          Certificate[]
+ certificates          Certificate[]  @relation("StudentCertificates")
+certificates_issued   Certificate[]  @relation("IssuedCertificates")
   ai_chat_history       AiChatHistory[]
   messages_sent         Message[]             @relation("Sender")
   messages_received     Message[]             @relation("Receiver")
@@ -406,13 +407,16 @@ model Certificate {
   id         String            @id @default(cuid())
   student_id String
   course_id  String
-  issued_at  DateTime          @default(now())
+  issuer_id  String?
+  grade      String?
   status     CertificateStatus @default(issued)
   pdf_url    String?
-  score      Int
+  score      Int               @default(0)
+  issued_at  DateTime          @default(now())
 
-  student User   @relation(fields: [student_id], references: [id])
+  student User   @relation("StudentCertificates", fields: [student_id], references: [id])
   course  Course @relation(fields: [course_id], references: [id])
+  issuer  User?  @relation("IssuedCertificates", fields: [issuer_id], references: [id])
 
   @@unique([student_id, course_id])
   @@index([student_id])
