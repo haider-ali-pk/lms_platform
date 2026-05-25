@@ -2,19 +2,21 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import { comparePassword, generateToken } from '@/app/lib/auth'
+import { comparePassword } from '@/app/lib/auth'
+import { createAndSendOTP } from '@/app/lib/otp'
+
+const MAX_ATTEMPTS = 5
+const LOCK_MINUTES = 15
 
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json()
-    console.log('LOGIN ATTEMPT:', email)
 
     if (!email || !password) {
       return NextResponse.json({ success: false, error: 'Email and password required' }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({ where: { email } })
-    console.log('USER FOUND:', !!user, 'IS_ACTIVE:', user?.is_active)
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 })
@@ -24,59 +26,82 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Account disabled' }, { status: 401 })
     }
 
+    // ── BRUTE FORCE CHECK ──
+    if (user.locked_until && user.locked_until > new Date()) {
+      const minutesLeft = Math.ceil((user.locked_until.getTime() - Date.now()) / 60000)
+      return NextResponse.json({
+        success: false,
+        error: `Account locked. Try again in ${minutesLeft} minute(s).`,
+        locked: true,
+        lockedUntil: user.locked_until,
+      }, { status: 423 })
+    }
+
     const valid = await comparePassword(password, user.password_hash)
-    console.log('PASSWORD VALID:', valid)
 
     if (!valid) {
-      return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 })
-    }
-
-    if (user.two_fa_enabled) {
-      return NextResponse.json({
-        success: true,
-        data: { requires2FA: true, userId: user.id },
+      const attempts = (user.login_attempts || 0) + 1
+      const shouldLock = attempts >= MAX_ATTEMPTS
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          login_attempts: attempts,
+          locked_until: shouldLock
+            ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000)
+            : null,
+        },
       })
+      return NextResponse.json({
+        success: false,
+        error: shouldLock
+          ? `Too many failed attempts. Account locked for ${LOCK_MINUTES} minutes.`
+          : `Invalid credentials. ${MAX_ATTEMPTS - attempts} attempt(s) remaining.`,
+        locked: shouldLock,
+      }, { status: 401 })
     }
 
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      schoolId: user.school_id,
-      name: `${user.first_name} ${user.last_name}`,
+    // ── RESET ATTEMPTS ON SUCCESS ──
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        login_attempts: 0,
+        locked_until: null,
+        last_login_at: new Date(),
+      },
     })
+
+    // ── PASSWORD EXPIRY CHECK (7 days) ──
+    const lastChange = user.last_password_change
+    const isExpired = !lastChange || 
+      (Date.now() - lastChange.getTime()) > 7 * 24 * 60 * 60 * 1000
+
+    if (isExpired) {
+      return NextResponse.json({
+        success: false,
+        requirePasswordChange: true,
+        userId: user.id,
+        error: 'Password expired',
+      }, { status: 200 })
+    }
+
+    // ── OTP ──
+    await createAndSendOTP(user.id, user.email)
 
     await prisma.auditLog.create({
       data: {
         user_id: user.id,
-        action: 'LOGIN',
+        action: 'LOGIN_OTP_SENT',
         entity: 'User',
         meta: { email: user.email },
       },
     })
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
-      data: {
-        token,
-        user: {
-          id: user.id,
-          name: `${user.first_name} ${user.last_name}`,
-          email: user.email,
-          role: user.role,
-          schoolId: user.school_id,
-        },
-      },
+      requireOTP: true,
+      userId: user.id,
     })
 
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-    })
-
-    return response
   } catch (err) {
     console.error('LOGIN ERROR:', err)
     return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
