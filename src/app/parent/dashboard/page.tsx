@@ -1,8 +1,8 @@
-// src/app/dashboard/parent/page.tsx
 "use client";
-
 import { useEffect, useState } from "react";
-import { Users, BookOpen, ClipboardList, TrendingUp, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import ParentSidebar from "@/components/parent/ParentSidebar";
+import { Users, TrendingUp, BookOpen, ClipboardList, ArrowRight, Award, AlertCircle, CheckCircle } from "lucide-react";
 
 interface Child {
   id: string;
@@ -25,6 +25,7 @@ interface Kpis {
 }
 
 export default function ParentDashboard() {
+  const router = useRouter();
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,165 +33,131 @@ export default function ParentDashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) { setError("Not authenticated"); setLoading(false); return; }
-
-    fetch("/api/parent/stats", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) { setError(data.error); return; }
-        setKpis(data.kpis);
-        setChildren(data.children);
-      })
+    if (!token) { router.push("/login"); return; }
+    fetch("/api/parent/stats", { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { setKpis(d.kpis); setChildren(d.children ?? []); })
       .catch(() => setError("Failed to load data"))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center gap-2 text-red-500 p-6">
-      <AlertCircle size={18} /> <span>{error}</span>
-    </div>
-  );
-
-  const kpiCards = [
-    {
-      label: "Children Enrolled",
-      value: kpis?.total_children ?? 0,
-      suffix: "",
-      icon: <Users size={22} />,
-      color: "bg-indigo-500",
-    },
-    {
-      label: "Avg Attendance",
-      value: kpis?.avg_attendance ?? 0,
-      suffix: "%",
-      icon: <TrendingUp size={22} />,
-      color: (kpis?.avg_attendance ?? 0) >= 75 ? "bg-green-500" : "bg-red-500",
-    },
-    {
-      label: "Avg Grade",
-      value: kpis?.avg_grade ?? 0,
-      suffix: "%",
-      icon: <TrendingUp size={22} />,
-      color: (kpis?.avg_grade ?? 0) >= 60 ? "bg-green-500" : "bg-yellow-500",
-    },
-    {
-      label: "Courses In Progress",
-      value: kpis?.courses_in_progress ?? 0,
-      suffix: "",
-      icon: <BookOpen size={22} />,
-      color: "bg-indigo-400",
-    },
-    {
-      label: "Pending Assignments",
-      value: kpis?.pending_assignments ?? 0,
-      suffix: "",
-      icon: <ClipboardList size={22} />,
-      color: (kpis?.pending_assignments ?? 0) > 0 ? "bg-red-500" : "bg-green-500",
-    },
-  ];
-
   return (
-    <div className="p-6 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Parent Dashboard</h1>
-        <p className="text-gray-400 text-sm mt-1">Monitor your children's academic progress</p>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {kpiCards.map((card) => (
-          <div key={card.label} className="bg-[#1e2a3a] rounded-xl p-4 flex flex-col gap-3 border border-white/5">
-            <div className={`w-10 h-10 rounded-lg ${card.color} flex items-center justify-center text-white`}>
-              {card.icon}
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">
-                {card.value}{card.suffix}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">{card.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Children Table */}
-      <div className="bg-[#1e2a3a] rounded-xl border border-white/5 overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/5">
-          <h2 className="text-white font-semibold">Children Overview</h2>
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <ParentSidebar active="dashboard" />
+      <main className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-100 px-8 py-5">
+          <h1 className="text-xl font-bold text-gray-900">Parent Dashboard</h1>
+          <p className="text-sm text-gray-500">Monitor your children's academic progress</p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gray-400 text-xs uppercase tracking-wide border-b border-white/5">
-                <th className="text-left px-6 py-3">Child</th>
-                <th className="text-left px-6 py-3">School</th>
-                <th className="text-left px-6 py-3">Attendance</th>
-                <th className="text-left px-6 py-3">Avg Grade</th>
-                <th className="text-left px-6 py-3">Courses</th>
-                <th className="text-left px-6 py-3">Pending</th>
-              </tr>
-            </thead>
-            <tbody>
-              {children.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-500">
-                    No children linked to this account.
-                  </td>
-                </tr>
-              ) : (
-                children.map((child) => (
-                  <tr key={child.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+
+        <div className="p-8 space-y-6">
+          {error && (
+            <div className="bg-red-50 text-red-600 rounded-2xl p-4 flex items-center gap-2 text-sm">
+              <AlertCircle size={16} /> {error}
+            </div>
+          )}
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-5">
+            {[
+              { label: "Children Enrolled", value: kpis?.total_children ?? 0, suffix: "", icon: Users, color: "bg-indigo-50", iconColor: "text-indigo-600", border: "border-l-indigo-500" },
+              { label: "Avg Attendance", value: kpis?.avg_attendance ?? 0, suffix: "%", icon: TrendingUp, color: "bg-emerald-50", iconColor: "text-emerald-600", border: "border-l-emerald-500" },
+              { label: "Courses In Progress", value: kpis?.courses_in_progress ?? 0, suffix: "", icon: BookOpen, color: "bg-blue-50", iconColor: "text-blue-600", border: "border-l-blue-500" },
+              { label: "Pending Assignments", value: kpis?.pending_assignments ?? 0, suffix: "", icon: ClipboardList, color: "bg-amber-50", iconColor: "text-amber-600", border: "border-l-amber-500" },
+            ].map(s => (
+              <div key={s.label} className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${s.border} shadow-sm p-5 flex items-center gap-4`}>
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${s.color}`}>
+                  <s.icon size={20} className={s.iconColor} />
+                </div>
+                <div>
+                  {loading ? <div className="h-7 w-12 bg-gray-100 rounded animate-pulse mb-1" /> : (
+                    <p className="text-2xl font-bold text-gray-900">{s.value}{s.suffix}</p>
+                  )}
+                  <p className="text-xs text-gray-500">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Children Cards */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-gray-900">My Children</h2>
+              <button onClick={() => router.push("/parent/children")} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1">
+                View all <ArrowRight size={14} />
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {[1, 2].map(i => <div key={i} className="bg-white rounded-2xl border border-gray-100 h-48 animate-pulse" />)}
+              </div>
+            ) : children.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Users size={24} className="text-gray-300" />
+                </div>
+                <p className="text-gray-500 font-medium">No children linked</p>
+                <p className="text-sm text-gray-400">Contact your school admin to link your children.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {children.map(child => (
+                  <div key={child.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6">
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
                         {child.name.charAt(0)}
                       </div>
-                      <span className="text-white font-medium">{child.name}</span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">{child.school_name}</td>
-                    <td className="px-6 py-4">
-                      <AttendanceBadge value={child.attendance_pct} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <GradeBadge value={child.avg_grade} />
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {child.courses_in_progress} / {child.total_courses}
-                    </td>
-                    <td className="px-6 py-4">
-                      {child.pending_assignments > 0 ? (
-                        <span className="text-red-400 font-semibold">{child.pending_assignments}</span>
-                      ) : (
-                        <span className="text-green-400">All done</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                      <div>
+                        <p className="font-bold text-gray-900">{child.name}</p>
+                        <p className="text-xs text-gray-400">{child.school_name}</p>
+                      </div>
+                      <div className="ml-auto">
+                        {child.pending_assignments > 0 ? (
+                          <span className="bg-red-50 text-red-600 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <AlertCircle size={11} /> {child.pending_assignments} pending
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-50 text-emerald-600 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <CheckCircle size={11} /> All done
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-gray-50 rounded-xl p-3 text-center">
+                        <p className={`text-lg font-bold ${(child.attendance_pct ?? 0) >= 75 ? "text-emerald-600" : "text-red-500"}`}>
+                          {child.attendance_pct !== null ? `${child.attendance_pct}%` : "—"}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">Attendance</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-3 text-center">
+                        <p className={`text-lg font-bold ${(child.avg_grade ?? 0) >= 60 ? "text-emerald-600" : "text-amber-500"}`}>
+                          {child.avg_grade !== null ? `${child.avg_grade}%` : "—"}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">Avg Grade</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-3 text-center">
+                        <p className="text-lg font-bold text-indigo-600">{child.courses_in_progress}/{child.total_courses}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Courses</p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => router.push(`/parent/progress?child=${child.id}`)}
+                      className="mt-4 w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-indigo-100 text-indigo-600 text-sm font-semibold hover:bg-indigo-50 transition-colors"
+                    >
+                      <Award size={14} /> View Progress
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
-}
-
-function AttendanceBadge({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-gray-500">No data</span>;
-  const color = value >= 75 ? "text-green-400" : value >= 50 ? "text-yellow-400" : "text-red-400";
-  return <span className={`font-semibold ${color}`}>{value}%</span>;
-}
-
-function GradeBadge({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-gray-500">No data</span>;
-  const color = value >= 60 ? "text-green-400" : value >= 40 ? "text-yellow-400" : "text-red-400";
-  return <span className={`font-semibold ${color}`}>{value}%</span>;
 }

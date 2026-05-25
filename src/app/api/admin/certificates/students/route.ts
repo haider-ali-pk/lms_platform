@@ -9,18 +9,39 @@ export async function GET(req: NextRequest) {
     if (!user || !["admin", "super_admin"].includes(user.role))
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const where = user.role === "admin"
-      ? { role: "student" as const, school_id: user.school_id, deleted_at: null }
-      : { role: "student" as const, deleted_at: null };
-
-    const students = await prisma.user.findMany({
-      where,
-      select: { id: true, first_name: true, last_name: true, avatar_url: true,
-        enrollments: { select: { course_id: true, course: { select: { id: true, title: true } } } },
+    // Fetch enrollments first, filtered by school
+    const enrollments = await prisma.enrollment.findMany({
+      where: user.role === "admin"
+        ? { student: { school_id: user.school_id, deleted_at: null } }
+        : { student: { deleted_at: null } },
+      select: {
+        student_id: true,
+        course_id: true,
+        course: { select: { id: true, title: true } },
+        student: { select: { id: true, first_name: true, last_name: true, avatar_url: true } },
       },
-      orderBy: { first_name: "asc" },
-      take: 200,
     });
+
+    // Group by student
+    const studentMap = new Map<string, any>();
+    for (const e of enrollments) {
+      if (!studentMap.has(e.student_id)) {
+        studentMap.set(e.student_id, {
+          id: e.student.id,
+          first_name: e.student.first_name,
+          last_name: e.student.last_name,
+          avatar_url: e.student.avatar_url,
+          enrollments: [],
+        });
+      }
+      studentMap.get(e.student_id).enrollments.push({
+        course_id: e.course_id,
+        course: e.course,
+      });
+    }
+
+    const students = Array.from(studentMap.values())
+      .sort((a, b) => a.first_name.localeCompare(b.first_name));
 
     return NextResponse.json({ students });
   } catch (err: any) {
