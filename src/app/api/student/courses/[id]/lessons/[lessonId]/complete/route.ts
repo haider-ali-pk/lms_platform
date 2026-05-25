@@ -16,8 +16,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
     await prisma.lessonProgress.upsert({
       where: { student_id_lesson_id: { student_id: user.id, lesson_id: lessonId } },
-      update: { is_completed: true, completed_at: new Date() },
-      create: { student_id: user.id, lesson_id: lessonId, is_completed: true, completed_at: new Date() },
+      update: { is_completed: true },
+      create: { student_id: user.id, lesson_id: lessonId, is_completed: true },
     });
 
     // Check if all lessons completed → mark course complete
@@ -29,7 +29,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     if (totalLessons > 0 && completedLessons >= totalLessons) {
       await prisma.enrollment.update({
         where: { student_id_course_id: { student_id: user.id, course_id: id } },
-        update: { completed_at: new Date() },
         data: { completed_at: new Date() },
       });
     }
