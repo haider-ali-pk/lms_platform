@@ -52,6 +52,21 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        attendance: {
+          distinct: ["student_id"],
+          select: {
+            student_id: true,
+            student: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                email: true,
+                is_active: true,
+              },
+            },
+          },
+        },
         _count: {
           select: { attendance: true },
         },
@@ -63,7 +78,19 @@ export async function GET(req: NextRequest) {
     prisma.class.count({ where }),
   ]);
 
-  return NextResponse.json({ classes, total, page, limit });
+  const formatted = classes.map((c) => ({
+    id: c.id,
+    name: c.name,
+    grade: c.grade,
+    section: c.section,
+    academic_year: c.academic_year,
+    created_at: c.created_at,
+    teachers: c.teachers,
+    students: c.attendance,
+    _count: c._count,
+  }));
+
+  return NextResponse.json({ classes: formatted, total, page, limit });
 }
 
 export async function POST(req: NextRequest) {
