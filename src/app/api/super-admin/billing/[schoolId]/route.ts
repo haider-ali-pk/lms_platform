@@ -14,35 +14,30 @@ function getUser(req: NextRequest) {
   } catch { return null; }
 }
 
-// PUT — assign or update plan for a school
-export async function PUT(req: NextRequest, { params }: { params: { schoolId: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ schoolId: string }> }) {
   const user = getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const { schoolId } = await context.params;
   const { plan, status } = await req.json();
 
   const existing = await prisma.stripeSubscription.findUnique({
-    where: { school_id: params.schoolId },
+    where: { school_id: schoolId },
   });
 
   if (existing) {
     const updated = await prisma.stripeSubscription.update({
-      where: { school_id: params.schoolId },
-      data: {
-        plan,
-        status,
-        updated_at: new Date(),
-      },
+      where: { school_id: schoolId },
+      data: { plan, status, updated_at: new Date() },
     });
     return NextResponse.json({ subscription: updated });
   } else {
-    // Create a manual subscription (no Stripe, assigned by super admin)
     const created = await prisma.stripeSubscription.create({
       data: {
-        school_id: params.schoolId,
-        stripe_customer_id: `manual_${params.schoolId}`,
-        stripe_subscription_id: `manual_sub_${params.schoolId}`,
+        school_id: schoolId,
+        stripe_customer_id: `manual_${schoolId}`,
+        stripe_subscription_id: `manual_sub_${schoolId}`,
         plan,
         status,
         current_period_start: new Date(),
@@ -53,14 +48,15 @@ export async function PUT(req: NextRequest, { params }: { params: { schoolId: st
   }
 }
 
-// DELETE — cancel a school's subscription
-export async function DELETE(req: NextRequest, { params }: { params: { schoolId: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ schoolId: string }> }) {
   const user = getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const { schoolId } = await context.params;
+
   await prisma.stripeSubscription.update({
-    where: { school_id: params.schoolId },
+    where: { school_id: schoolId },
     data: { status: "canceled", cancel_at_period_end: true },
   });
 

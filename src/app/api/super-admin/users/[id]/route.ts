@@ -17,16 +17,21 @@ function getUser(req: NextRequest) {
   }
 }
 
-// PUT — update user
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const { id } = await context.params;
   const body = await req.json();
   const { first_name, last_name, email, role, school_id, is_active, password } = body;
 
-  const data: any = { first_name, last_name, email, role, is_active,
+  const data: any = {
+    first_name,
+    last_name,
+    email,
+    role,
+    is_active,
     school_id: school_id || null,
   };
 
@@ -35,21 +40,22 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 
   const updated = await prisma.user.update({
-    where: { id: params.id },
+    where: { id },
     data,
   });
 
   return NextResponse.json({ user: updated });
 }
 
-// DELETE — soft delete user
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const { id } = await context.params;
+
   await prisma.user.update({
-    where: { id: params.id },
+    where: { id },
     data: { deleted_at: new Date(), is_active: false },
   });
 

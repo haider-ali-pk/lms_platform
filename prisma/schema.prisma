@@ -97,7 +97,7 @@ model School {
   stripe_subscription StripeSubscription?
   audit_logs          AuditLog[]
   notifications       Notification[]
-
+enrollment_requests EnrollmentRequest[]
   @@index([slug])
   @@map("schools")
 }
@@ -520,4 +520,29 @@ model AuditLog {
   @@index([action])
   @@index([created_at])
   @@map("audit_logs")
+}
+enum EnrollmentRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model EnrollmentRequest {
+  id           String                  @id @default(cuid())
+  school_id    String
+  student_name String
+  parent_name  String
+  phone        String
+  grade        String
+  date_of_birth DateTime              @db.Date
+  status       EnrollmentRequestStatus @default(pending)
+  notes        String?
+  created_at   DateTime               @default(now())
+  updated_at   DateTime               @updatedAt
+
+  school School @relation(fields: [school_id], references: [id])
+
+  @@index([school_id])
+  @@index([status])
+  @@map("enrollment_requests")
 }

@@ -16,30 +16,31 @@ function getUser(req: NextRequest) {
   }
 }
 
-// PUT — update school
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const { id } = await context.params;
   const body = await req.json();
   const { name, email, phone, address, city, is_active } = body;
 
   const school = await prisma.school.update({
-    where: { id: params.id },
+    where: { id },
     data: { name, email, phone, address, city, is_active },
   });
 
   return NextResponse.json({ school });
 }
 
-// DELETE — delete school
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  await prisma.school.delete({ where: { id: params.id } });
+  const { id } = await context.params;
+
+  await prisma.school.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }
