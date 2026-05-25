@@ -13,11 +13,13 @@ const ROLE_PREFIXES: Record<string, string> = {
 };
 
 const PUBLIC_PATHS = [
-  "/login",
+  "/auth/login",
   "/register",
   "/forgot-password",
   "/reset-password",
   "/password-expired",
+  "/verify-otp",        // ← ADD THIS
+  "/verify-2fa",        // ← ADD THIS too (you'll need it later)
   "/suspended",
   "/api/auth",
   "/api/health",
@@ -32,7 +34,7 @@ function isPublic(pathname: string): boolean {
 }
 
 function getPortalPrefix(role: string): string {
-  return ROLE_PREFIXES[role] ?? "/login";
+  return ROLE_PREFIXES[role] ?? "/auth/login";
 }
 
 export async function middleware(req: NextRequest) {
@@ -49,7 +51,7 @@ export async function middleware(req: NextRequest) {
   // No token → redirect to login
   if (!token) {
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/auth/login";
     url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
@@ -71,7 +73,7 @@ export async function middleware(req: NextRequest) {
   } catch {
     // Invalid/expired token → redirect to login
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/auth/login";
     return NextResponse.redirect(url);
   }
 
@@ -91,7 +93,7 @@ export async function middleware(req: NextRequest) {
   // Locked account (brute force) → back to login with message
   if (locked_until && new Date(locked_until) > new Date()) {
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/auth/login";
     url.searchParams.set("locked", "true");
     return NextResponse.redirect(url);
   }
@@ -146,6 +148,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons|manifest.json).*)",
+    // Added api fallback inside the exclusion group
+    "/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.json).*)",
   ],
 };

@@ -2,45 +2,40 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import { generateToken } from '@/app/lib/auth'
+import { verifyOTP } from '@/app/lib/otp'
+import { SignJWT } from 'jose'
+
+const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'secret')
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, otp } = await req.json()
+    const { userId, code } = await req.json()
 
-    if (!email || !otp) {
-      return NextResponse.json({ success: false, error: 'Email and OTP required' }, { status: 400 })
+    if (!userId || !code) {
+      return NextResponse.json({ error: 'userId and code required' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { email } })
+    const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (!user.otp_code || !user.otp_expires_at) {
-      return NextResponse.json({ success: false, error: 'No OTP requested' }, { status: 400 })
+    const valid = await verifyOTP(userId, code)
+    if (!valid) {
+      return NextResponse.json({ error: 'Invalid or expired OTP' }, { status: 400 })
     }
 
-    if (new Date() > user.otp_expires_at) {
-      return NextResponse.json({ success: false, error: 'OTP expired' }, { status: 400 })
-    }
-
-    if (user.otp_code !== otp) {
-      return NextResponse.json({ success: false, error: 'Invalid OTP' }, { status: 400 })
-    }
-
-    await prisma.user.update({
-      where: { email },
-      data: { otp_code: null, otp_expires_at: null },
-    })
-
-    const token = generateToken({
+    const token = await new SignJWT({
       id: user.id,
-      email: user.email,
       role: user.role,
       school_id: user.school_id,
-      name: `${user.first_name} ${user.last_name}`,
+      is_active: user.is_active,
+      fee_blocked: (user as any).fee_blocked ?? false,
+      last_password_change: user.last_password_change?.toISOString() ?? new Date().toISOString(),
     })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('7d')
+      .sign(SECRET)
 
     await prisma.auditLog.create({
       data: {
@@ -51,29 +46,19 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    const response = NextResponse.json({
-      success: true,
-      data: {
-        token,
-        user: {
-          id: user.id,
-          name: `${user.first_name} ${user.last_name}`,
-          email: user.email,
-          role: user.role,
-          school_id: user.school_id,
-        },
-      },
-    })
+    const response = NextResponse.json({ success: true, role: user.role })
 
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      path: '/',
       maxAge: 60 * 60 * 24 * 7,
     })
 
     return response
   } catch (error) {
-    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
+    console.error('VERIFY OTP ERROR:', error)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
