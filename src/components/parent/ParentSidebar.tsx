@@ -16,8 +16,9 @@ export default function ParentSidebar({ active }: { active: string }) {
   const router = useRouter();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
+    fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+      router.push("/auth/login");
+    });
   };
 
   return (
@@ -33,7 +34,6 @@ export default function ParentSidebar({ active }: { active: string }) {
           </div>
         </div>
       </div>
-
       <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href;
@@ -53,7 +53,6 @@ export default function ParentSidebar({ active }: { active: string }) {
           );
         })}
       </nav>
-
       <div className="p-3 border-t border-gray-100">
         <button
           onClick={handleLogout}
