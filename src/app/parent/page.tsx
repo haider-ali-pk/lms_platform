@@ -1,9 +1,8 @@
-'use client'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-
-export default function ParentPage() {
-  const router = useRouter()
-  useEffect(() => { router.replace('/parent/dashboard') }, [])
-  return null
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+export default function ParentRoot() {
+  const router = useRouter();
+  useEffect(() => { router.replace("/parent/dashboard"); }, []);
+  return null;
 }
