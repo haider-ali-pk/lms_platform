@@ -1,7 +1,8 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Zap } from 'lucide-react'
 
 interface SidebarProps {
   role: string
@@ -9,7 +10,16 @@ interface SidebarProps {
   schoolName?: string
 }
 
-const navConfig: Record<string, { section: string; items: { label: string; path: string; icon: React.ReactNode; badge?: number }[] }[]> = {
+const PLAN_STYLES: Record<string, { label: string; bg: string; color: string }> = {
+  free:       { label: 'Free',       bg: '#F1F5F9', color: '#64748B' },
+  basic:      { label: 'Basic',      bg: '#EEF2FF', color: '#4F46E5' },
+  pro:        { label: 'Pro',        bg: '#F0FDF4', color: '#16A34A' },
+  starter:    { label: 'Starter',    bg: '#EEF2FF', color: '#4F46E5' },
+  growth:     { label: 'Growth',     bg: '#FAF5FF', color: '#9333EA' },
+  enterprise: { label: 'Enterprise', bg: '#FFFBEB', color: '#D97706' },
+}
+
+const navConfig: Record<string, { section: string; items: { label: string; path: string; icon: React.ReactNode; badge?: number; planBadge?: boolean }[] }[]> = {
   SUPER_ADMIN: [
     {
       section: 'Overview',
@@ -88,14 +98,15 @@ const navConfig: Record<string, { section: string; items: { label: string; path:
       items: [
         { label: 'Classes', path: '/admin/classes', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg> },
         { label: 'Courses', path: '/admin/courses', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> },
-       { label: 'Reports', path: '/admin/reports', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> },
-{ label: 'Certificates', path: '/admin/certificates', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg> },
-     {
-      label: 'Enrollments',
-      path: '/admin/enrollments',
-      icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+        { label: 'Reports', path: '/admin/reports', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> },
+        { label: 'Certificates', path: '/admin/certificates', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg> },
+        { label: 'Enrollments', path: '/admin/enrollments', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
+      ],
     },
-     
+    {
+      section: 'Billing',
+      items: [
+        { label: 'School Plan', path: '/admin/billing', planBadge: true, icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg> },
       ],
     },
   ],
@@ -132,7 +143,7 @@ const navConfig: Record<string, { section: string; items: { label: string; path:
         { label: 'Quizzes', path: '/student/quizzes', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
         { label: 'Progress', path: '/student/progress', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> },
         { label: 'Certificates', path: '/student/certificates', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg> },
-        { label: 'AI Tutor', path: '/student/ai', icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> },
+        { label: 'AI Tutor', path: '/student/ai', planBadge: true, icon: <svg fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> },
       ],
     },
   ],
@@ -159,28 +170,48 @@ export default function Sidebar({ role, userName, schoolName }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [plan, setPlan] = useState<string | null>(null)
 
-  const sections = navConfig[role?.toUpperCase()] || []
+  const roleUpper = role?.toUpperCase()
+
+  useEffect(() => {
+    if (roleUpper === 'STUDENT') {
+      fetch('/api/student/billing')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.plan) setPlan(d.plan) })
+        .catch(() => {})
+    }
+    if (roleUpper === 'ADMIN') {
+      fetch('/api/admin/billing')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.plan) setPlan(d.plan) })
+        .catch(() => {})
+    }
+  }, [roleUpper])
+
+  const sections = navConfig[roleUpper] || []
 
   function handleLogout() {
-  fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
-    router.push('/auth/login')
-  })
-}
+    fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
+      router.push('/auth/login')
+    })
+  }
 
-  const initials = userName
-    ? userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'U'
+  const planStyle = plan ? (PLAN_STYLES[plan] ?? PLAN_STYLES.free) : null
+
+  // Upgrade CTA config per role
+  const upgradeCTA = roleUpper === 'STUDENT'
+    ? { label: 'Upgrade AI Plan', href: '/student/billing' }
+    : roleUpper === 'ADMIN'
+    ? { label: 'Upgrade School Plan', href: '/admin/billing' }
+    : null
+
+  const showUpgradeCTA = upgradeCTA && (!plan || plan === 'free' || plan === 'trial' || plan === 'trialing')
 
   return (
     <div
       className="flex flex-col min-h-screen border-r transition-all duration-300"
-      style={{
-        width: collapsed ? 64 : 220,
-        background: '#fff',
-        borderColor: '#E2E8F0',
-        flexShrink: 0,
-      }}
+      style={{ width: collapsed ? 64 : 220, background: '#fff', borderColor: '#E2E8F0', flexShrink: 0 }}
     >
       {/* Brand */}
       <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: '#E2E8F0', minHeight: 60 }}>
@@ -198,8 +229,7 @@ export default function Sidebar({ role, userName, schoolName }: SidebarProps) {
           <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4">
             {collapsed
               ? <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              : <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            }
+              : <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />}
           </svg>
         </button>
       </div>
@@ -210,6 +240,16 @@ export default function Sidebar({ role, userName, schoolName }: SidebarProps) {
           <p className="text-xs text-[#94A3B8] mb-0.5">Signed in as</p>
           <p className="text-xs font-semibold text-[#1E293B] truncate">{userName}</p>
           {schoolName && <p className="text-xs text-[#4F46E5] truncate mt-0.5">{schoolName}</p>}
+          {/* Plan badge in user card */}
+          {planStyle && (
+            <span
+              className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: planStyle.bg, color: planStyle.color }}
+            >
+              <Zap size={9} />
+              {planStyle.label}
+            </span>
+          )}
         </div>
       )}
 
@@ -245,12 +285,36 @@ export default function Sidebar({ role, userName, schoolName }: SidebarProps) {
                       {item.badge}
                     </span>
                   )}
+                  {/* Plan badge on AI Tutor (student) and School Plan (admin) */}
+                  {!collapsed && item.planBadge && planStyle && (
+                    <span
+                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                      style={{ background: planStyle.bg, color: planStyle.color }}
+                    >
+                      <Zap size={8} />
+                      {planStyle.label}
+                    </span>
+                  )}
                 </button>
               )
             })}
           </div>
         ))}
       </nav>
+
+      {/* Upgrade CTA */}
+      {!collapsed && showUpgradeCTA && (
+        <div className="mx-3 mb-3">
+          <button
+            onClick={() => router.push(upgradeCTA!.href)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
+          >
+            <Zap size={12} />
+            {upgradeCTA!.label}
+          </button>
+        </div>
+      )}
 
       {/* Logout */}
       <div className="p-2 border-t" style={{ borderColor: '#E2E8F0' }}>
