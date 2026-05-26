@@ -1,11 +1,23 @@
 export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
+import { rateLimit } from "@/app/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
+    // ── IP RATE LIMIT: 3 requests per hour ──
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const { allowed, retryAfterSeconds } = rateLimit(`forgot-password:${ip}`, 3, 60 * 60 * 1000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `Too many requests. Try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).` },
+        { status: 429 }
+      )
+    }
+
     const { email } = await req.json();
     if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
@@ -21,7 +33,7 @@ export async function POST(req: NextRequest) {
     });
 
     const token = crypto.randomBytes(32).toString("hex");
-    const expires_at = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expires_at = new Date(Date.now() + 60 * 60 * 1000);
 
     await prisma.passwordResetToken.create({
       data: { user_id: user.id, token, expires_at, used: false },

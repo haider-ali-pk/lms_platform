@@ -4,12 +4,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
 import { comparePassword } from '@/app/lib/auth'
 import { createAndSendOTP } from '@/app/lib/otp'
+import { rateLimit } from '@/app/lib/rateLimit'
 
 const MAX_ATTEMPTS = 5
 const LOCK_MINUTES = 15
 
 export async function POST(req: NextRequest) {
   try {
+    // ── IP RATE LIMIT: 10 requests per 15 minutes ──
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const { allowed, retryAfterSeconds } = rateLimit(`login:${ip}`, 10, 15 * 60 * 1000)
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: `Too many requests. Try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).` },
+        { status: 429 }
+      )
+    }
+
     const { email, password } = await req.json()
 
     if (!email || !password) {
@@ -64,7 +75,7 @@ export async function POST(req: NextRequest) {
       data: { login_attempts: 0, locked_until: null, last_login_at: new Date() },
     })
 
-    // ── PASSWORD EXPIRY CHECK (7 days) — fresh fetch ──
+    // ── PASSWORD EXPIRY CHECK (7 days) ──
     const freshUser = await prisma.user.findUnique({ where: { id: user.id } })
     const lastChange = freshUser?.last_password_change
     const isExpired = !lastChange ||
