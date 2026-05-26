@@ -6,7 +6,7 @@ import { getUserFromRequest } from '@/app/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req)
+    const user = await getUserFromRequest(req)
 
     if (!user || user.role !== 'admin') {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
