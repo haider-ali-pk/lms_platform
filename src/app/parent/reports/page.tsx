@@ -24,8 +24,9 @@ export default function ParentReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-      .then(r => r.json())
-      .then(d => setReports(d.reports ?? []))
+    fetch("/api/parent/reports")
+      .then(r => { if (!r.ok) { router.push("/auth/login"); return null; } return r.json(); })
+      .then(d => { if (d) setReports(d.reports ?? []); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -55,7 +56,6 @@ export default function ParentReportsPage() {
             <div key={r.child_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500" />
               <div className="p-6">
-                {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
@@ -74,7 +74,6 @@ export default function ParentReportsPage() {
                   </button>
                 </div>
 
-                {/* Stats grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                   {[
                     { label: "Attendance Rate", value: r.attendance_pct !== null ? `${r.attendance_pct}%` : "—", icon: CalendarCheck, color: "text-emerald-600", bg: "bg-emerald-50" },
@@ -92,7 +91,6 @@ export default function ParentReportsPage() {
                   ))}
                 </div>
 
-                {/* Performance bar */}
                 <div className="bg-gray-50 rounded-xl p-4">
                   <div className="flex items-center justify-between text-sm mb-2">
                     <span className="text-gray-600 font-medium">Overall Course Progress</span>

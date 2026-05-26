@@ -2,29 +2,16 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import jwt from 'jsonwebtoken'
+import { getUserFromRequest } from '@/app/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const JWT_SECRET = process.env.JWT_SECRET!
-
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'No token' }, { status: 401 })
+    const user = await getUserFromRequest(req)
+    if (!user || user.role !== 'student') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = authHeader.split(' ')[1]
-
-    const decoded = jwt.verify(token, JWT_SECRET) as {
-      userId: string
-      role: string
-    }
-
-    if (decoded.role !== 'student') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const studentId = decoded.userId
+    const studentId = user.id
 
     const [
       enrollments,
@@ -34,33 +21,26 @@ export async function GET(req: NextRequest) {
       attendance,
       aiChats,
     ] = await Promise.all([
-
       prisma.enrollment.count({
         where: { student_id: studentId },
       }),
-
       prisma.lessonProgress.count({
         where: { student_id: studentId, is_completed: true },
       }),
-
       prisma.quizAttempt.findMany({
         where: { student_id: studentId },
         select: { score: true },
       }),
-
       prisma.assignmentSubmission.count({
         where: { student_id: studentId, marks: null },
       }),
-
       prisma.attendance.findMany({
         where: { student_id: studentId },
         select: { status: true },
       }),
-
-      prisma.aiChatHistory.count({
+      prisma.aiChatSession.count({
         where: { student_id: studentId },
       }),
-
     ])
 
     const avgScore =
@@ -88,7 +68,6 @@ export async function GET(req: NextRequest) {
       attendancePercent,
       aiTutorChats:       aiChats,
     })
-
   } catch (error) {
     console.error('Student stats error:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

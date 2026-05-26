@@ -25,8 +25,9 @@ export default function ParentChildrenPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-      .then(r => r.json())
-      .then(d => setChildren(d.children ?? []))
+    fetch("/api/parent/children")
+      .then(r => { if (!r.ok) { router.push("/auth/login"); return null; } return r.json(); })
+      .then(d => { if (d) setChildren(d.children ?? []); })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
   }, []);
