@@ -173,7 +173,7 @@ model User {
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
   deleted_at          DateTime?
-
+  
   school                School?               @relation(fields: [school_id], references: [id])
   courses_created       Course[]              @relation("CourseAuthor")
   enrollments           Enrollment[]

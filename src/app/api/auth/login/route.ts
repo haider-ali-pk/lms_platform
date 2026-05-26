@@ -11,7 +11,6 @@ const LOCK_MINUTES = 15
 
 export async function POST(req: NextRequest) {
   try {
-    // ── IP RATE LIMIT: 10 requests per 15 minutes ──
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     const { allowed, retryAfterSeconds } = rateLimit(`login:${ip}`, 10, 15 * 60 * 1000)
     if (!allowed) {
@@ -22,22 +21,18 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, password } = await req.json()
-
     if (!email || !password) {
       return NextResponse.json({ success: false, error: 'Email and password required' }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({ where: { email } })
-
     if (!user) {
       return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 })
     }
-
     if (!user.is_active) {
       return NextResponse.json({ success: false, error: 'Account disabled' }, { status: 401 })
     }
 
-    // ── BRUTE FORCE CHECK ──
     if (user.locked_until && user.locked_until > new Date()) {
       const minutesLeft = Math.ceil((user.locked_until.getTime() - Date.now()) / 60000)
       return NextResponse.json({
@@ -49,7 +44,6 @@ export async function POST(req: NextRequest) {
     }
 
     const valid = await comparePassword(password, user.password_hash)
-
     if (!valid) {
       const attempts = (user.login_attempts || 0) + 1
       const shouldLock = attempts >= MAX_ATTEMPTS
@@ -69,13 +63,11 @@ export async function POST(req: NextRequest) {
       }, { status: 401 })
     }
 
-    // ── RESET ATTEMPTS ON SUCCESS ──
     await prisma.user.update({
       where: { id: user.id },
       data: { login_attempts: 0, locked_until: null, last_login_at: new Date() },
     })
 
-    // ── PASSWORD EXPIRY CHECK (7 days) ──
     const freshUser = await prisma.user.findUnique({ where: { id: user.id } })
     const lastChange = freshUser?.last_password_change
     const isExpired = !lastChange ||
@@ -90,7 +82,15 @@ export async function POST(req: NextRequest) {
       }, { status: 200 })
     }
 
-    // ── OTP ──
+    // ── 2FA CHECK — skip OTP if 2FA enabled ──
+    if (freshUser?.two_fa_enabled) {
+      return NextResponse.json({
+        success: true,
+        require2FA: true,
+        userId: user.id,
+      })
+    }
+
     createAndSendOTP(user.id, user.email).catch(err => console.error('OTP send failed:', err))
 
     await prisma.auditLog.create({
