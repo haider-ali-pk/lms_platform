@@ -132,11 +132,12 @@ export default function ManageStudentsPage() {
       if (editStudent && !form.password) delete body.password;
 
       const res = await fetch(url, {
-        method,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+  method,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(body),
+});
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Something went wrong.");

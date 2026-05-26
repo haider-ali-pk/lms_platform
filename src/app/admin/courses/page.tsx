@@ -92,15 +92,14 @@ export default function ManageCoursesPage() {
   }, [fetchCourses]);
 
   async function fetchAllStudents() {
-    try {
-      const res = await fetch(`/api/admin/users?role=student&limit=10000&page=1`, {
-      });
-      const data = await res.json();
-      setAllStudents(data.users || []);
-    } catch {
-      setAllStudents([]);
-    }
+  try {
+    const res = await fetch(`/api/admin/users?role=student&limit=10000&page=1`);
+    const data = await res.json();
+    setAllStudents(data.users || []);
+  } catch {
+    setAllStudents([]);
   }
+}
 
   function openEdit(course: Course) {
     setEditCourse(course);
@@ -122,11 +121,12 @@ export default function ManageCoursesPage() {
     setEditSubmitting(true);
     try {
       const res = await fetch(`/api/admin/courses/${editCourse.id}`, {
-        method: "PUT",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editForm),
-      });
+  method: "PUT",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(editForm),
+});
       const data = await res.json();
       if (!res.ok) {
         setEditError(data.error || "Something went wrong.");
@@ -152,11 +152,12 @@ export default function ManageCoursesPage() {
     setEnrolling(true);
     try {
       const res = await fetch(`/api/admin/courses/${enrollCourse.id}`, {
-        method: "POST",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ student_id: studentId }),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ student_id: studentId }),
+});
       if (res.ok) {
         setEnrollCourse(null);
         fetchCourses();

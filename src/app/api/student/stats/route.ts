@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         select: { status: true },
       }),
       prisma.aiChatSession.count({
-        where: { student_id: studentId },
+        where: { user_id: studentId },
       }),
     ])
 

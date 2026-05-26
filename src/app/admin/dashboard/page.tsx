@@ -55,23 +55,18 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    setUserName(user.name || 'Admin')
-    setSchoolName(user.schoolName || 'Your School')
+    fetch('/api/auth/me')
+      .then(r => { if (!r.ok) { router.push('/auth/login'); return null; } return r.json(); })
+      .then(d => {
+        if (!d) return
+        setUserName(`${d.first_name ?? ''} ${d.last_name ?? ''}`.trim() || 'Admin')
+        setSchoolName(d.school?.name ?? 'Your School')
+      })
 
-    async function fetchStats() {
-      try {
-        const res = await fetch('/api/admin/stats', {
-        })
-        const data = await res.json()
-        if (data.success) setStats(data.data)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchStats()
+    fetch('/api/admin/stats')
+      .then(r => { if (!r.ok) return null; return r.json(); })
+      .then(d => { if (d?.success) setStats(d.data) })
+      .finally(() => setLoading(false))
   }, [])
 
   const kpis = [
@@ -113,40 +108,28 @@ export default function AdminDashboard() {
     <DashboardLayout requiredRole="admin">
       <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
 
-        {/* Top bar */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-8 h-14 border-b" style={{ background: '#fff', borderColor: '#E2E8F0' }}>
           <div>
             <p className="text-sm font-medium text-[#1E293B]">Admin Dashboard</p>
             <p className="text-xs text-[#94A3B8]">{schoolName}</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/admin/students')}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors hover:bg-[#F8FAFC]"
-              style={{ borderColor: '#E2E8F0', color: '#64748B' }}
-            >
+            <button onClick={() => router.push('/admin/students')} className="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors hover:bg-[#F8FAFC]" style={{ borderColor: '#E2E8F0', color: '#64748B' }}>
               + Add Student
             </button>
-            <button
-              onClick={() => router.push('/admin/teachers')}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg text-white transition-colors"
-              style={{ background: '#4F46E5' }}
-            >
+            <button onClick={() => router.push('/admin/teachers')} className="text-xs font-medium px-3 py-1.5 rounded-lg text-white transition-colors" style={{ background: '#4F46E5' }}>
               + Add Teacher
             </button>
           </div>
         </div>
 
         <div className="p-8 max-w-7xl mx-auto">
-
-          {/* Greeting */}
           <div className="mb-7">
             <p className="text-sm text-[#64748B] mb-0.5">Good morning,</p>
             <h1 className="text-2xl font-semibold text-[#1E293B]">{userName} 👋</h1>
             <p className="text-sm text-[#94A3B8] mt-1">Here's your school overview for today.</p>
           </div>
 
-          {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
             {kpis.map((kpi) => (
               <div key={kpi.label} className="rounded-2xl border p-5 hover:shadow-sm transition-shadow" style={{ background: '#fff', borderColor: '#E2E8F0' }}>
@@ -163,10 +146,7 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {/* Charts */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
-
-            {/* Enrollment Chart */}
             <div className="rounded-2xl border p-5" style={{ background: '#fff', borderColor: '#E2E8F0' }}>
               <p className="text-sm font-medium text-[#1E293B]">Student Enrollment</p>
               <p className="text-xs text-[#94A3B8] mb-4">Last 6 months growth</p>
@@ -189,7 +169,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Attendance Chart */}
             <div className="rounded-2xl border p-5" style={{ background: '#fff', borderColor: '#E2E8F0' }}>
               <p className="text-sm font-medium text-[#1E293B]">Weekly Attendance</p>
               <p className="text-xs text-[#94A3B8] mb-4">Present / Absent / Late this week</p>
@@ -209,10 +188,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Tables */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-
-            {/* Recent Teachers */}
             <div className="rounded-2xl border p-5" style={{ background: '#fff', borderColor: '#E2E8F0' }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -233,13 +209,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-[#94A3B8]">{t.subject} · {t.classes} classes</p>
                       </div>
                     </div>
-                    <span
-                      className="text-xs font-medium px-2 py-0.5 rounded-full"
-                      style={{
-                        background: t.status === 'Active' ? '#ECFDF5' : '#FFFBEB',
-                        color: t.status === 'Active' ? '#059669' : '#D97706',
-                      }}
-                    >
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: t.status === 'Active' ? '#ECFDF5' : '#FFFBEB', color: t.status === 'Active' ? '#059669' : '#D97706' }}>
                       {t.status}
                     </span>
                   </div>
@@ -247,7 +217,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Students */}
             <div className="rounded-2xl border p-5" style={{ background: '#fff', borderColor: '#E2E8F0' }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -268,13 +237,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-[#94A3B8]">{s.grade} · {s.attendance} attendance</p>
                       </div>
                     </div>
-                    <span
-                      className="text-xs font-medium px-2 py-0.5 rounded-full"
-                      style={{
-                        background: s.status === 'Active' ? '#ECFDF5' : '#FEF2F2',
-                        color: s.status === 'Active' ? '#059669' : '#EF4444',
-                      }}
-                    >
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: s.status === 'Active' ? '#ECFDF5' : '#FEF2F2', color: s.status === 'Active' ? '#059669' : '#EF4444' }}>
                       {s.status}
                     </span>
                   </div>

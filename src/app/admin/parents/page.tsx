@@ -130,12 +130,13 @@ export default function ManageParentsPage() {
       const body: Record<string, unknown> = { ...form };
       if (editParent && !form.password) delete body.password;
 
-      const res = await fetch(url, {
-        method,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+     const res = await fetch(url, {
+  method,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(body),
+});
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Something went wrong.");

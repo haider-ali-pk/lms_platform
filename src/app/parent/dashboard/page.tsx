@@ -30,8 +30,8 @@ export default function ParentDashboard() {
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  useEffect(() => {
+useEffect(() => {
+    fetch("/api/parent/stats")
       .then(r => r.json())
       .then(d => { setKpis(d.kpis); setChildren(d.children ?? []); })
       .catch(() => setError("Failed to load data"))
