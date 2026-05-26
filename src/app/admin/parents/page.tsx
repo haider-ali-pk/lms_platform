@@ -68,7 +68,7 @@ export default function ManageParentsPage() {
     try {
       const res = await fetch(
         `/api/admin/parents?search=${encodeURIComponent(search)}&page=${page}`,
-        { credentials: 'include' }
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       const data = await res.json();
       setParents(data.parents || []);
@@ -157,7 +157,7 @@ export default function ManageParentsPage() {
     try {
       await fetch(`/api/admin/parents/${id}`, {
         method: "DELETE",
-        credentials: 'include',
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setDeleteId(null);
       fetchParents();

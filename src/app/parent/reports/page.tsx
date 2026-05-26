@@ -26,7 +26,7 @@ export default function ParentReportsPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
-    fetch("/api/parent/reports", { ` } })
+    fetch("/api/parent/reports", { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => setReports(d.reports ?? []))
       .finally(() => setLoading(false));

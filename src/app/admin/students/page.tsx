@@ -69,7 +69,7 @@ export default function ManageStudentsPage() {
     try {
       const res = await fetch(
         `/api/admin/students?search=${encodeURIComponent(search)}&page=${page}`,
-        { credentials: 'include' }
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       const data = await res.json();
       setStudents(data.students || []);
@@ -158,7 +158,7 @@ export default function ManageStudentsPage() {
     try {
       await fetch(`/api/admin/students/${id}`, {
         method: "DELETE",
-        credentials: 'include',
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setDeleteId(null);
       fetchStudents();

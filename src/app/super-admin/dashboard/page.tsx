@@ -73,7 +73,9 @@ export default function SuperAdminDashboard() {
     setUserName(user.name || 'Super Admin')
     async function fetchStats() {
       try {
+        const token = localStorage.getItem('token')
         const res = await fetch('/api/super-admin/stats', {
+          headers: { Authorization: `Bearer ${token}` },
         })
         const data = await res.json()
         if (data.success) setStats(data.data)

@@ -54,7 +54,7 @@ export default function ManageTeachersPage() {
     try {
       const res = await fetch(
         `/api/admin/teachers?search=${encodeURIComponent(search)}&page=${page}`,
-        { credentials: 'include' }
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       const data = await res.json();
       setTeachers(data.teachers || []);
@@ -143,7 +143,7 @@ export default function ManageTeachersPage() {
     try {
       await fetch(`/api/admin/teachers/${id}`, {
         method: "DELETE",
-        credentials: 'include',
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setDeleteId(null);
       fetchTeachers();
