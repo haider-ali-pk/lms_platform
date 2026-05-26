@@ -54,7 +54,6 @@ export default function ManageTeachersPage() {
     try {
       const res = await fetch(
         `/api/admin/teachers?search=${encodeURIComponent(search)}&page=${page}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       const data = await res.json();
       setTeachers(data.teachers || []);
@@ -119,9 +118,7 @@ export default function ManageTeachersPage() {
 
       const res = await fetch(url, {
         method,
-        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(body),
       });
@@ -143,7 +140,6 @@ export default function ManageTeachersPage() {
     try {
       await fetch(`/api/admin/teachers/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setDeleteId(null);
       fetchTeachers();

@@ -109,7 +109,6 @@ export default function CoursesPage() {
     setLoading(true)
     try {
       const url = sid ? `/api/super-admin/courses?school_id=${sid}` : "/api/super-admin/courses"
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       const data = await res.json()
       setKpi(data.kpi)
       setTopCourses(data.topCourses || [])
@@ -132,7 +131,6 @@ export default function CoursesPage() {
     setStudentResults([])
     try {
       const res = await fetch(`/api/super-admin/courses/${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()
       setCourseDetail(data)
@@ -175,7 +173,6 @@ export default function CoursesPage() {
     try {
       const res = await fetch(`/api/super-admin/courses/${editCourseId}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify(editForm),
       })
       const data = await res.json()
@@ -197,7 +194,6 @@ export default function CoursesPage() {
     try {
       const res = await fetch(
         `/api/super-admin/courses/${courseDetail.id}/enrollments?q=${encodeURIComponent(q)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
       )
       const data = await res.json()
       setStudentResults(data.students || [])
@@ -214,7 +210,6 @@ export default function CoursesPage() {
     try {
       const res = await fetch(`/api/super-admin/courses/${courseDetail.id}/enrollments`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ student_id: studentId }),
       })
       if (res.ok) {
@@ -235,7 +230,6 @@ export default function CoursesPage() {
     try {
       const res = await fetch(`/api/super-admin/courses/${courseDetail.id}/enrollments`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ student_id: studentId }),
       })
       if (res.ok) {

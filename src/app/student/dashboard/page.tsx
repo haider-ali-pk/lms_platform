@@ -80,10 +80,7 @@ export default function StudentDashboard() {
   const [studentName, setStudentName] = useState('')
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const user = localStorage.getItem('user')
 
-    if (!token) {
       router.push('/login')
       return
     }
@@ -94,7 +91,6 @@ export default function StudentDashboard() {
     }
 
     fetch('/api/student/stats', {
-      headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => {

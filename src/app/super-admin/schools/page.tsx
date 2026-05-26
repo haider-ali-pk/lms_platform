@@ -46,7 +46,6 @@ export default function ManageSchoolsPage() {
   async function fetchSchools() {
     setLoading(true);
     const res = await fetch("/api/super-admin/schools", {
-      headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
     if (data.error) { setError(data.error); setLoading(false); return; }
@@ -96,7 +95,6 @@ export default function ManageSchoolsPage() {
     const method = editSchool ? "PUT" : "POST";
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(form),
     });
     const data = await res.json();
@@ -111,7 +109,6 @@ export default function ManageSchoolsPage() {
     setDeleting(true);
     await fetch(`/api/super-admin/schools/${deleteId}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
     });
     setDeleteId(null);
     setDeleting(false);

@@ -76,7 +76,6 @@ export default function ManageCoursesPage() {
     try {
       const res = await fetch(
         `/api/admin/courses?search=${encodeURIComponent(search)}&page=${page}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       const data = await res.json();
       setCourses(data.courses || []);
@@ -95,7 +94,6 @@ export default function ManageCoursesPage() {
   async function fetchAllStudents() {
     try {
       const res = await fetch(`/api/admin/users?role=student&limit=10000&page=1`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const data = await res.json();
       setAllStudents(data.users || []);
@@ -125,9 +123,7 @@ export default function ManageCoursesPage() {
     try {
       const res = await fetch(`/api/admin/courses/${editCourse.id}`, {
         method: "PUT",
-        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(editForm),
       });
@@ -157,9 +153,7 @@ export default function ManageCoursesPage() {
     try {
       const res = await fetch(`/api/admin/courses/${enrollCourse.id}`, {
         method: "POST",
-        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ student_id: studentId }),
       });
@@ -179,7 +173,6 @@ export default function ManageCoursesPage() {
     try {
       await fetch(`/api/admin/courses/${courseId}?student_id=${studentId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       fetchCourses();
       if (viewCourse) {

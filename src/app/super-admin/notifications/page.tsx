@@ -71,7 +71,6 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async (p = 1) => {
     try {
       const res = await fetch(`/api/super-admin/notifications?page=${p}`, {
-        headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
       setNotifications(data.notifications || [])
@@ -89,7 +88,6 @@ export default function NotificationsPage() {
   const fetchSchools = useCallback(async () => {
     try {
       const res = await fetch("/api/super-admin/schools", {
-        headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
       setSchools(data.schools || [])
@@ -114,7 +112,6 @@ export default function NotificationsPage() {
     try {
       const res = await fetch("/api/super-admin/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(form)
       })
       if (res.ok) {
@@ -131,7 +128,6 @@ export default function NotificationsPage() {
   const markAllRead = async () => {
     await fetch("/api/super-admin/notifications", {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` }
     })
     fetchNotifications(page)
   }
@@ -150,7 +146,6 @@ export default function NotificationsPage() {
     try {
       const res = await fetch(`/api/super-admin/notifications/${editTarget.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ title: editTitle, body: editBody })
       })
       if (res.ok) {
@@ -169,7 +164,6 @@ export default function NotificationsPage() {
     try {
       const res = await fetch(`/api/super-admin/notifications/${deleteTarget.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) {
         setDeleteTarget(null)

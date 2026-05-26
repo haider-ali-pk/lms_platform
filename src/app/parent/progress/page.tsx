@@ -33,9 +33,6 @@ function ProgressContent() {
   const [childrenLoading, setChildrenLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { router.push("/auth/login"); return; }
-    fetch("/api/parent/children", { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
         const list = d.children ?? [];
@@ -51,10 +48,8 @@ function ProgressContent() {
 
   useEffect(() => {
     if (!selected) return;
-    const token = localStorage.getItem("token");
     setLoading(true);
     setProgress(null);
-    fetch(`/api/parent/progress?child_id=${selected}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => setProgress(d.progress ?? null))
       .finally(() => setLoading(false));
