@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getUserFromRequest } from "@/app/lib/auth";
+import { prisma } from "@/app/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);

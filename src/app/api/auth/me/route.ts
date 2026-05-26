@@ -1,37 +1,49 @@
-export const dynamic = 'force-dynamic'
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
+import { NextRequest } from 'next/server'
+import { jwtVerify } from 'jose'
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest } from '@/app/lib/auth'
-import { prisma } from '@/app/lib/prisma'
+const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'secret')
 
-export async function GET(req: NextRequest) {
+export function hashPassword(password: string) {
+  return bcrypt.hash(password, 12)
+}
+
+export function comparePassword(password: string, hash: string) {
+  return bcrypt.compare(password, hash)
+}
+
+export function generateToken(payload: object) {
+  const JWT_SECRET = process.env.JWT_SECRET!
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+}
+
+export function verifyToken(token: string) {
+  const JWT_SECRET = process.env.JWT_SECRET!
+  return jwt.verify(token, JWT_SECRET) as any
+}
+
+export function getTokenFromRequest(req: NextRequest) {
+  const authHeader = req.headers.get('authorization')
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7)
+  }
+  return req.cookies.get('token')?.value || null
+}
+
+export async function getUserFromRequest(req: NextRequest) {
   try {
-    const payload = await getUserFromRequest(req)
-    if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = getTokenFromRequest(req)
+    if (!token) return null
+    // Try jose first (httpOnly cookie tokens signed with SignJWT)
+    try {
+      const { payload } = await jwtVerify(token, SECRET)
+      return payload as any
+    } catch {
+      // Fall back to jsonwebtoken (old localStorage tokens)
+      return verifyToken(token)
     }
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id },
-      select: {
-        id: true,
-        first_name: true,
-        last_name: true,
-        email: true,
-        role: true,
-        school_id: true,
-        is_active: true,
-        avatar_url: true,
-        school: { select: { name: true } },
-      },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    return NextResponse.json(user)
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return null
   }
 }
