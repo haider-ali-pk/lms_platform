@@ -26,7 +26,7 @@ export default function ParentChildrenPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) { router.push("/login"); return; }
+    if (!token) { router.push("/auth/login"); return; }
     fetch("/api/parent/children", { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => setChildren(d.children ?? []))

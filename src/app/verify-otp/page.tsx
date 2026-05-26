@@ -64,7 +64,7 @@ function OTPForm() {
         student: "/student",
         parent: "/parent",
       };
-      router.push(roleMap[data.role] || "/login");
+      router.push(roleMap[data.role] || "/auth/login");
     } catch {
       setError("Something went wrong");
     } finally {
