@@ -46,9 +46,7 @@ export async function POST(req: NextRequest) {
         where: { id: user.id },
         data: {
           login_attempts: attempts,
-          locked_until: shouldLock
-            ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000)
-            : null,
+          locked_until: shouldLock ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000) : null,
         },
       })
       return NextResponse.json({
@@ -63,16 +61,13 @@ export async function POST(req: NextRequest) {
     // ── RESET ATTEMPTS ON SUCCESS ──
     await prisma.user.update({
       where: { id: user.id },
-      data: {
-        login_attempts: 0,
-        locked_until: null,
-        last_login_at: new Date(),
-      },
+      data: { login_attempts: 0, locked_until: null, last_login_at: new Date() },
     })
 
-    // ── PASSWORD EXPIRY CHECK (7 days) ──
-    const lastChange = user.last_password_change
-    const isExpired = !lastChange || 
+    // ── PASSWORD EXPIRY CHECK (7 days) — fresh fetch ──
+    const freshUser = await prisma.user.findUnique({ where: { id: user.id } })
+    const lastChange = freshUser?.last_password_change
+    const isExpired = !lastChange ||
       (Date.now() - lastChange.getTime()) > 7 * 24 * 60 * 60 * 1000
 
     if (isExpired) {
@@ -85,7 +80,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── OTP ──
-    await createAndSendOTP(user.id, user.email)
+    createAndSendOTP(user.id, user.email).catch(err => console.error('OTP send failed:', err))
 
     await prisma.auditLog.create({
       data: {

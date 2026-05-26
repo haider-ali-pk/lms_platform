@@ -56,9 +56,8 @@ export default function TeacherDashboard() {
 
     async function fetchStats() {
       try {
-        const token = localStorage.getItem('token')
         const res = await fetch('/api/teacher/stats', {
-          headers: { Authorization: `Bearer ${token}` },
+          ` },
         })
         const data = await res.json()
         if (data.success) setStats(data.data)

@@ -34,7 +34,7 @@ export default function ParentDashboard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
-    fetch("/api/parent/stats", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/parent/stats", { ` } })
       .then(r => r.json())
       .then(d => { setKpis(d.kpis); setChildren(d.children ?? []); })
       .catch(() => setError("Failed to load data"))

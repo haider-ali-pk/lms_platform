@@ -55,26 +55,28 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    setUserName(user.name || 'Admin')
-    setSchoolName(user.schoolName || 'Your School')
-
-    async function fetchStats() {
-      try {
-        const token = localStorage.getItem('token')
-        const res = await fetch('/api/admin/stats', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        const data = await res.json()
-        if (data.success) setStats(data.data)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
+  async function init() {
+    try {
+      const res = await fetch('/api/auth/me')
+      if (res.ok) {
+        const user = await res.json()
+        setUserName(`${user.first_name} ${user.last_name}`)
+        setSchoolName(user.school?.name || 'Your School')
       }
+    } catch {}
+
+    try {
+      const res = await fetch('/api/admin/stats')
+      const data = await res.json()
+      if (data.success) setStats(data.data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
     }
-    fetchStats()
-  }, [])
+  }
+  init()
+}, [])
 
   const kpis = [
     {

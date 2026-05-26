@@ -112,7 +112,7 @@ function AttendanceContent() {
     try {
       const res  = await fetch(
         `/api/teacher/attendance?class_id=${class_id}&date=${date}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { ` } }
       )
       const data = await res.json()
       setClassInfo(data.classInfo)
@@ -155,8 +155,7 @@ function AttendanceContent() {
         note:       localNote[s.id]   || "",
       }))
       const res = await fetch("/api/teacher/attendance", {
-        method:  "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        method:  "POST"`, "Content-Type": "application/json" },
         body:    JSON.stringify({ class_id, date: selectedDate, records }),
       })
       if (res.ok) {

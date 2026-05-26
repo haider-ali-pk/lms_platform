@@ -1,44 +1,37 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/app/lib/prisma'
 import { getUserFromRequest } from '@/app/lib/auth'
+import { prisma } from '@/app/lib/prisma'
 
 export async function GET(req: NextRequest) {
   try {
-    const payload = getUserFromRequest(req)
+    const payload = await getUserFromRequest(req)
     if (!payload) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
       select: {
         id: true,
-        name: true,
+        first_name: true,
+        last_name: true,
         email: true,
         role: true,
-        schoolId: true,
-        twoFaEnabled: true,
-        isActive: true,
-        createdAt: true,
-        school: {
-          select: {
-            id: true,
-            name: true,
-            plan: true,
-            logoUrl: true,
-          },
-        },
+        school_id: true,
+        is_active: true,
+        avatar_url: true,
+        school: { select: { name: true } },
       },
     })
 
     if (!user) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, data: user })
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
+    return NextResponse.json(user)
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 }

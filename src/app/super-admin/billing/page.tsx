@@ -62,7 +62,7 @@ export default function BillingPage() {
   async function fetchBilling() {
     setLoading(true);
     const res = await fetch("/api/super-admin/billing", {
-      headers: { Authorization: `Bearer ${token}` },
+      ` },
     });
     const data = await res.json();
     if (data.error) { setError(data.error); setLoading(false); return; }
@@ -107,8 +107,7 @@ export default function BillingPage() {
     if (!cancelId) return;
     setCanceling(true);
     await fetch(`/api/super-admin/billing/${cancelId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      method: "DELETE"` },
     });
     setCancelId(null);
     setCanceling(false);

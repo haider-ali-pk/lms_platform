@@ -30,7 +30,7 @@ function PasswordExpiredForm() {
       });
       const data = await res.json();
       if (!res.ok) return setError(data.error || "Failed");
-      router.push("/login?changed=true");
+      router.push('/auth/login?changed=true')
     } catch {
       setError("Something went wrong");
     } finally {

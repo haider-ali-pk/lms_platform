@@ -54,7 +54,7 @@ export default function AuditLogsPage() {
       ...(schoolFilter && { school_id: schoolFilter }),
     });
     const res = await fetch(`/api/super-admin/audit-logs?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      ` },
     });
     const data = await res.json();
     if (data.error) { setError(data.error); setLoading(false); return; }
@@ -65,7 +65,7 @@ export default function AuditLogsPage() {
   }
 
   async function fetchSchools() {
-    const res = await fetch("/api/super-admin/schools", { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch("/api/super-admin/schools", { ` } });
     const data = await res.json();
     if (!data.error) setSchools(data.schools);
   }

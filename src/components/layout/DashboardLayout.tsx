@@ -15,23 +15,24 @@ export default function DashboardLayout({ children, requiredRole }: DashboardLay
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const stored = localStorage.getItem('user')
-    const token = localStorage.getItem('token')
-
-    if (!stored || !token) {
-      router.push('/auth/login')
-      return
-    }
-
-    const parsed = JSON.parse(stored)
-
-    if (requiredRole && parsed.role !== requiredRole) {
-      router.push('/auth/login')
-      return
-    }
-
-    setUser(parsed)
-    setLoading(false)
+    fetch('/api/auth/me')
+      .then(res => {
+        if (!res.ok) {
+          router.push('/auth/login')
+          return null
+        }
+        return res.json()
+      })
+      .then(data => {
+        if (!data) return
+        if (requiredRole && data.role !== requiredRole) {
+          router.push('/auth/login')
+          return
+        }
+        setUser(data)
+        setLoading(false)
+      })
+      .catch(() => router.push('/auth/login'))
   }, [])
 
   if (loading) {
@@ -49,7 +50,7 @@ export default function DashboardLayout({ children, requiredRole }: DashboardLay
     <div className="flex min-h-screen bg-[#F8FAFC]">
       <Sidebar
         role={user?.role}
-        userName={user?.name}
+        userName={`${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim()}
         schoolName={user?.school?.name}
       />
       <main className="flex-1 overflow-auto">

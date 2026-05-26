@@ -66,7 +66,7 @@ export default function SettingsPage() {
     setLoading(true)
     try {
       const res  = await fetch("/api/super-admin/settings", {
-        headers: { Authorization: `Bearer ${token}` },
+        ` },
       })
       const data = await res.json()
       setProfile(data.profile)
@@ -101,8 +101,7 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       const res  = await fetch("/api/super-admin/settings", {
-        method:  "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        method:  "PUT"`, "Content-Type": "application/json" },
         body:    JSON.stringify({ type, ...body }),
       })
       const data = await res.json()
@@ -120,8 +119,7 @@ export default function SettingsPage() {
     setTogglingTwoFA(true)
     try {
       const res = await fetch("/api/super-admin/settings", {
-        method:  "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        method:  "PUT"`, "Content-Type": "application/json" },
         body:    JSON.stringify({ type: "2fa", two_fa_enabled: !twoFA }),
       })
       if (res.ok) {

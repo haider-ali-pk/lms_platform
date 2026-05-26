@@ -32,7 +32,7 @@ function ResetForm() {
       const data = await res.json();
       if (!res.ok) return setError(data.error || "Failed");
       setDone(true);
-      setTimeout(() => router.push("/login?reset=true"), 2000);
+      setTimeout(() => router.push('/auth/login?changed=true'), 2000);
     } catch {
       setError("Something went wrong");
     } finally {
@@ -106,7 +106,7 @@ function ResetForm() {
             <p className="text-center text-sm text-red-500">Invalid or missing reset token.</p>
           )}
 
-          <Link href="/login" className="block text-center text-sm text-gray-500 hover:text-gray-700">
+          <Link href="/auth/login" className="block text-center text-sm text-gray-500 hover:text-gray-700">
             Back to Login
           </Link>
         </div>

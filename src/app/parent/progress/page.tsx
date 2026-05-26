@@ -35,7 +35,7 @@ function ProgressContent() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
-    fetch("/api/parent/children", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/parent/children", { ` } })
       .then(r => r.json())
       .then(d => {
         const list = d.children ?? [];
@@ -54,7 +54,7 @@ function ProgressContent() {
     const token = localStorage.getItem("token");
     setLoading(true);
     setProgress(null);
-    fetch(`/api/parent/progress?child_id=${selected}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`/api/parent/progress?child_id=${selected}`, { ` } })
       .then(r => r.json())
       .then(d => setProgress(d.progress ?? null))
       .finally(() => setLoading(false));

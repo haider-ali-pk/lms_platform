@@ -105,7 +105,7 @@ export default function AssignmentsPage() {
     setLoading(true)
     try {
       const res  = await fetch("/api/teacher/assignments", {
-        headers: { Authorization: `Bearer ${token}` },
+        ` },
       })
       const data = await res.json()
       setAssignments(data.assignments || [])
@@ -125,7 +125,7 @@ export default function AssignmentsPage() {
     setDetail(null)
     try {
       const res  = await fetch(`/api/teacher/assignments/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        ` },
       })
       const data = await res.json()
       setDetail(data)
@@ -147,8 +147,7 @@ export default function AssignmentsPage() {
     setCreateError("")
     try {
       const res  = await fetch("/api/teacher/assignments", {
-        method:  "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        method:  "POST"`, "Content-Type": "application/json" },
         body:    JSON.stringify(createForm),
       })
       const data = await res.json()
@@ -168,8 +167,7 @@ export default function AssignmentsPage() {
     setEditError("")
     try {
       const res  = await fetch(`/api/teacher/assignments/${detail.id}`, {
-        method:  "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        method:  "PUT"`, "Content-Type": "application/json" },
         body:    JSON.stringify({ type: "edit", ...editForm, due_date: editForm.due_date }),
       })
       const data = await res.json()
@@ -188,8 +186,7 @@ export default function AssignmentsPage() {
     setGrading(subId)
     try {
       const res = await fetch(`/api/teacher/assignments/${detail.id}`, {
-        method:  "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        method:  "PUT"`, "Content-Type": "application/json" },
         body:    JSON.stringify({
           type:          "grade",
           submission_id: subId,
@@ -209,8 +206,7 @@ export default function AssignmentsPage() {
   const deleteAssignment = async (id: string) => {
     if (!confirm("Delete this assignment?")) return
     await fetch(`/api/teacher/assignments/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      method: "DELETE"` },
     })
     await fetchData()
     showToast("Assignment deleted!")

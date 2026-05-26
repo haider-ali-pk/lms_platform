@@ -11,41 +11,51 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  e.preventDefault()
+  setLoading(true)
+  setError('')
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
 
-    const data = await res.json()
-    setLoading(false)
+  const data = await res.json()
+  setLoading(false)
 
-    if (!data.success) {
-      setError(data.error)
-      return
-    }
-
-    if (data.data.requires2FA) {
-      router.push(`/verify-2fa?userId=${data.data.userId}`)
-      return
-    }
-
-    localStorage.setItem('token', data.data.token)
-    localStorage.setItem('user', JSON.stringify(data.data.user))
-
-    const role = data.data.user.role
-    if (role === 'super_admin') router.push('/super-admin/dashboard')
-    else if (role === 'admin') router.push('/admin/dashboard')
-    else if (role === 'teacher') router.push('/teacher/dashboard')
-    else if (role === 'student') router.push('/student/dashboard')
-    else if (role === 'parent') router.push('/parent/dashboard')
-    else router.push('/super-admin/dashboard')
+  // Password expired
+  if (data.requirePasswordChange) {
+    router.push(`/password-expired?userId=${data.userId}`)
+    return
   }
 
+  if (!data.success) {
+    setError(data.error)
+    return
+  }
+
+  // OTP required
+  if (data.requireOTP) {
+    router.push(`/verify-otp?userId=${data.userId}`)
+    return
+  }
+
+  // 2FA
+  if (data.requires2FA) {
+    router.push(`/verify-2fa?userId=${data.userId}`)
+    return
+  }
+  localStorage.setItem('user', JSON.stringify(data.user))
+
+  const role = data.user.role
+  if (role === 'super_admin') router.push('/super-admin/dashboard')
+  else if (role === 'admin') router.push('/admin/dashboard')
+  else if (role === 'teacher') router.push('/teacher/dashboard')
+  else if (role === 'student') router.push('/student/dashboard')
+  else if (role === 'parent') router.push('/parent/dashboard')
+  else router.push('/super-admin/dashboard')
+}
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -101,7 +111,7 @@ export default function LoginPage() {
           <div className="mt-6 pt-6 border-t border-[#E2E8F0]">
             <p className="text-center text-sm text-[#64748B] mb-3">Login with OTP instead</p>
             <button
-              onClick={() => router.push('/login-otp')}
+              onClick={() => router.push('/auth/login-otp')}
               className="w-full border border-[#4F46E5] text-[#4F46E5] py-3 rounded-xl font-medium hover:bg-[#EEF2FF] transition-colors"
             >
               Send OTP to email

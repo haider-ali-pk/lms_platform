@@ -76,7 +76,7 @@ export default function ManageCoursesPage() {
     try {
       const res = await fetch(
         `/api/admin/courses?search=${encodeURIComponent(search)}&page=${page}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        { credentials: 'include' }
       );
       const data = await res.json();
       setCourses(data.courses || []);
@@ -95,7 +95,7 @@ export default function ManageCoursesPage() {
   async function fetchAllStudents() {
     try {
       const res = await fetch(`/api/admin/users?role=student&limit=10000&page=1`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        credentials: 'include',
       });
       const data = await res.json();
       setAllStudents(data.users || []);
@@ -179,7 +179,7 @@ export default function ManageCoursesPage() {
     try {
       await fetch(`/api/admin/courses/${courseId}?student_id=${studentId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        credentials: 'include',
       });
       fetchCourses();
       if (viewCourse) {

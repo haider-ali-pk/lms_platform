@@ -59,7 +59,7 @@ export default function RevenuePage() {
     setLoading(true)
     try {
       const res = await fetch("/api/super-admin/revenue", {
-        headers: { Authorization: `Bearer ${token}` },
+        ` },
       })
       const data = await res.json()
       setKpi(data.kpi)

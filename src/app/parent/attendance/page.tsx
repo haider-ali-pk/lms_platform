@@ -39,7 +39,7 @@ export default function ParentAttendancePage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
-    fetch("/api/parent/children", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/parent/children", { ` } })
       .then(r => r.json())
       .then(d => {
         setChildren(d.children ?? []);
@@ -52,7 +52,7 @@ export default function ParentAttendancePage() {
     if (!selected) return;
     const token = localStorage.getItem("token");
     setLoading(true);
-    fetch(`/api/parent/attendance?child_id=${selected}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`/api/parent/attendance?child_id=${selected}`, { ` } })
       .then(r => r.json())
       .then(d => setData(d.attendance ?? null))
       .finally(() => setLoading(false));

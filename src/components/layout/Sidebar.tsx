@@ -163,10 +163,10 @@ export default function Sidebar({ role, userName, schoolName }: SidebarProps) {
   const sections = navConfig[role?.toUpperCase()] || []
 
   function handleLogout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+  fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
     router.push('/auth/login')
-  }
+  })
+}
 
   const initials = userName
     ? userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)

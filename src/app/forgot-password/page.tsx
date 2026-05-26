@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Check Your Email</h1>
           <p className="text-gray-500 mt-2 text-sm">We sent a password reset link to <strong>{email}</strong>. It expires in 1 hour.</p>
-          <Link href="/login" className="mt-6 inline-block text-indigo-600 hover:text-indigo-700 font-semibold text-sm">
+          <Link href="/auth/login" className="mt-6 inline-block text-indigo-600 hover:text-indigo-700 font-semibold text-sm">
             Back to Login
           </Link>
         </div>
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
             {loading ? "Sending..." : "Send Reset Link"}
           </button>
 
-          <Link href="/login" className="block text-center text-sm text-gray-500 hover:text-gray-700">
+          <Link href="/auth/login" className="block text-center text-sm text-gray-500 hover:text-gray-700">
             Back to Login
           </Link>
         </div>

@@ -88,7 +88,7 @@ export default function ManageClassesPage() {
     try {
       const res = await fetch(
         `/api/admin/classes?search=${encodeURIComponent(search)}&page=${page}`,
-        { headers: { Authorization: `Bearer ${token()}` } }
+        { ` } }
       );
       const data = await res.json();
       setClasses(data.classes || []);
@@ -105,7 +105,7 @@ export default function ManageClassesPage() {
   async function fetchAllTeachers() {
     try {
       const res = await fetch(`/api/admin/teachers?limit=10000&page=1`, {
-        headers: { Authorization: `Bearer ${token()}` },
+        ` },
       });
       const data = await res.json();
       setAllTeachers(data.teachers || []);
@@ -117,7 +117,7 @@ export default function ManageClassesPage() {
   async function fetchAllStudents() {
     try {
       const res = await fetch(`/api/admin/students?limit=10000&page=1`, {
-        headers: { Authorization: `Bearer ${token()}` },
+        ` },
       });
       const data = await res.json();
       setAllStudents(data.students || []);
@@ -181,8 +181,7 @@ export default function ManageClassesPage() {
     setDeletingId(id);
     try {
       await fetch(`/api/admin/classes/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token()}` },
+        method: "DELETE"` },
       });
       fetchClasses();
     } finally {
@@ -207,7 +206,7 @@ export default function ManageClassesPage() {
       });
       if (res.ok) {
         const updated = await fetch(`/api/admin/classes?search=&page=1`, {
-          headers: { Authorization: `Bearer ${token()}` },
+          ` },
         }).then(r => r.json());
         const found = (updated.classes || []).find((c: Class) => c.id === assignClass.id);
         if (found) setAssignClass(found);
