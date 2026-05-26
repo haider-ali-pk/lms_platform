@@ -80,7 +80,6 @@ export default function ManageUsersPage() {
       ...(schoolFilter && { school_id: schoolFilter }),
     });
     const res = await fetch(`/api/super-admin/users?${params}`, {
-      ` },
     });
     const data = await res.json();
     if (data.error) { setError(data.error); setLoading(false); return; }
@@ -92,7 +91,6 @@ export default function ManageUsersPage() {
 
   async function fetchSchools() {
     const res = await fetch("/api/super-admin/schools", {
-      ` },
     });
     const data = await res.json();
     if (!data.error) setSchools(data.schools);

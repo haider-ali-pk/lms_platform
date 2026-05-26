@@ -132,7 +132,6 @@ export default function CoursesPage() {
     setStudentResults([])
     try {
       const res = await fetch(`/api/super-admin/courses/${courseId}`, {
-        ` },
       })
       const data = await res.json()
       setCourseDetail(data)

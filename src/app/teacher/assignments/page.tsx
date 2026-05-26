@@ -105,7 +105,6 @@ export default function AssignmentsPage() {
     setLoading(true)
     try {
       const res  = await fetch("/api/teacher/assignments", {
-        ` },
       })
       const data = await res.json()
       setAssignments(data.assignments || [])
@@ -125,7 +124,6 @@ export default function AssignmentsPage() {
     setDetail(null)
     try {
       const res  = await fetch(`/api/teacher/assignments/${id}`, {
-        ` },
       })
       const data = await res.json()
       setDetail(data)

@@ -105,7 +105,6 @@ export default function ManageClassesPage() {
   async function fetchAllTeachers() {
     try {
       const res = await fetch(`/api/admin/teachers?limit=10000&page=1`, {
-        ` },
       });
       const data = await res.json();
       setAllTeachers(data.teachers || []);
@@ -117,7 +116,6 @@ export default function ManageClassesPage() {
   async function fetchAllStudents() {
     try {
       const res = await fetch(`/api/admin/students?limit=10000&page=1`, {
-        ` },
       });
       const data = await res.json();
       setAllStudents(data.students || []);
@@ -206,7 +204,6 @@ export default function ManageClassesPage() {
       });
       if (res.ok) {
         const updated = await fetch(`/api/admin/classes?search=&page=1`, {
-          ` },
         }).then(r => r.json());
         const found = (updated.classes || []).find((c: Class) => c.id === assignClass.id);
         if (found) setAssignClass(found);

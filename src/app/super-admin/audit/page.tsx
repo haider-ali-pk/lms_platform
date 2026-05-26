@@ -54,7 +54,6 @@ export default function AuditLogsPage() {
       ...(schoolFilter && { school_id: schoolFilter }),
     });
     const res = await fetch(`/api/super-admin/audit-logs?${params}`, {
-      ` },
     });
     const data = await res.json();
     if (data.error) { setError(data.error); setLoading(false); return; }

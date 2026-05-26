@@ -91,7 +91,6 @@ export default function StudentDashboard() {
     }
 
     fetch('/api/student/stats', {
-      ` },
     })
       .then((res) => res.json())
       .then((data) => {

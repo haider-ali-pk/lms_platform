@@ -57,7 +57,6 @@ export default function TeacherDashboard() {
     async function fetchStats() {
       try {
         const res = await fetch('/api/teacher/stats', {
-          ` },
         })
         const data = await res.json()
         if (data.success) setStats(data.data)

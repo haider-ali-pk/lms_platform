@@ -74,7 +74,6 @@ export default function SuperAdminDashboard() {
     async function fetchStats() {
       try {
         const res = await fetch('/api/super-admin/stats', {
-          ` },
         })
         const data = await res.json()
         if (data.success) setStats(data.data)

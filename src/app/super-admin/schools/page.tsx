@@ -46,7 +46,6 @@ export default function ManageSchoolsPage() {
   async function fetchSchools() {
     setLoading(true);
     const res = await fetch("/api/super-admin/schools", {
-      ` },
     });
     const data = await res.json();
     if (data.error) { setError(data.error); setLoading(false); return; }

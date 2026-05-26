@@ -66,7 +66,6 @@ export default function SettingsPage() {
     setLoading(true)
     try {
       const res  = await fetch("/api/super-admin/settings", {
-        ` },
       })
       const data = await res.json()
       setProfile(data.profile)
