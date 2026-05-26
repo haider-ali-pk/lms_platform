@@ -1,46 +1,56 @@
-// src/app/api/super-admin/schools/[id]/route.ts
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import jwt from "jsonwebtoken";
+import { getUserFromRequest } from "@/app/lib/auth";
 
-function getUser(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) return null;
-  try {
-    const JWT_SECRET = process.env.JWT_SECRET!;
-    return jwt.verify(auth.slice(7), JWT_SECRET) as { id: string; role: string };
-  } catch {
-    return null;
+export async function PUT(req: NextRequest, context: { params: Promise<{ schoolId: string }> }) {
+  const user = await getUserFromRequest(req);
+  if (!user || user.role !== "super_admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { schoolId } = await context.params;
+  const { plan, status } = await req.json();
+
+  const existing = await prisma.stripeSubscription.findUnique({
+    where: { school_id: schoolId },
+  });
+
+  if (existing) {
+    const updated = await prisma.stripeSubscription.update({
+      where: { school_id: schoolId },
+      data: { plan, status, updated_at: new Date() },
+    });
+    return NextResponse.json({ subscription: updated });
+  } else {
+    const created = await prisma.stripeSubscription.create({
+      data: {
+        school_id: schoolId,
+        stripe_customer_id: `manual_${schoolId}`,
+        stripe_subscription_id: `manual_sub_${schoolId}`,
+        plan,
+        status,
+        current_period_start: new Date(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+    return NextResponse.json({ subscription: created });
   }
 }
 
-export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = getUser(req);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (user.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+export async function DELETE(req: NextRequest, context: { params: Promise<{ schoolId: string }> }) {
+  const user = await getUserFromRequest(req);
+  if (!user || user.role !== "super_admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  const { id } = await context.params;
-  const body = await req.json();
-  const { name, email, phone, address, city, is_active } = body;
+  const { schoolId } = await context.params;
 
-  const school = await prisma.school.update({
-    where: { id },
-    data: { name, email, phone, address, city, is_active },
+  await prisma.stripeSubscription.update({
+    where: { school_id: schoolId },
+    data: { status: "canceled", cancel_at_period_end: true },
   });
-
-  return NextResponse.json({ school });
-}
-
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = getUser(req);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (user.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const { id } = await context.params;
-
-  await prisma.school.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }

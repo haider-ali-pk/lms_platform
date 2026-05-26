@@ -106,21 +106,22 @@ export default function CoursesPage() {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : ""
 
   const fetchData = useCallback(async (sid = "") => {
-    setLoading(true)
-    try {
-      const url = sid ? `/api/super-admin/courses?school_id=${sid}` : "/api/super-admin/courses"
-      const data = await res.json()
-      setKpi(data.kpi)
-      setTopCourses(data.topCourses || [])
-      setCourses(data.courses || [])
-      setSchools(data.schools || [])
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }, [token])
-
+  setLoading(true)
+  try {
+    const url = sid ? `/api/super-admin/courses?school_id=${sid}` : "/api/super-admin/courses"
+    const res = await fetch(url)
+    if (!res.ok) return
+    const data = await res.json()
+    setKpi(data.kpi)
+    setTopCourses(data.topCourses || [])
+    setCourses(data.courses || [])
+    setSchools(data.schools || [])
+  } catch (err) {
+    console.error(err)
+  } finally {
+    setLoading(false)
+  }
+}, [])
   useEffect(() => { fetchData() }, [fetchData])
 
   const openDetail = async (courseId: string) => {

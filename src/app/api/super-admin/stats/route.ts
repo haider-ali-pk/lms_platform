@@ -6,7 +6,7 @@ import { getUserFromRequest } from '@/app/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req)
+    const user = await getUserFromRequest(req)
     if (!user || user.role !== 'super_admin') {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
@@ -19,16 +19,11 @@ export async function GET(req: NextRequest) {
 
     const totalUsers = allUsers.length
     const totalStudents = allUsers.filter((u: any) => String(u.role) === 'student').length
-const totalTeachers = allUsers.filter((u: any) => String(u.role) === 'teacher').length
+    const totalTeachers = allUsers.filter((u: any) => String(u.role) === 'teacher').length
 
     return NextResponse.json({
       success: true,
-      data: {
-        totalSchools,
-        totalUsers,
-        totalStudents,
-        totalTeachers,
-      },
+      data: { totalSchools, totalUsers, totalStudents, totalTeachers },
     })
   } catch (err) {
     console.error('STATS ERROR:', err)
