@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, ClipboardList, HelpCircle, TrendingUp, Award, Bot, LayoutDashboard, LogOut, Zap } from "lucide-react";
+import { BookOpen, ClipboardList, HelpCircle, TrendingUp, Award, Bot, LayoutDashboard, LogOut, Zap, DollarSign } from "lucide-react";
+
 
 const NAV = [
   { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard, key: "dashboard" },
@@ -11,6 +12,8 @@ const NAV = [
   { label: "Progress", href: "/student/progress", icon: TrendingUp, key: "progress" },
   { label: "Certificates", href: "/student/certificates", icon: Award, key: "certificates" },
   { label: "AI Tutor", href: "/student/ai", icon: Bot, key: "ai", planBadge: true },
+  { label: "My Fees", href: "/student/fees", icon: DollarSign, key: "fees" },
+  { label: "AI Plan", href: "/student/billing", icon: Zap, key: "billing", planBadge: true },
 ];
 
 const PLAN_STYLES: Record<string, { label: string; bg: string; color: string }> = {
@@ -49,6 +52,7 @@ export default function StudentSidebar({ active }: { active: string }) {
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">Overview</p>
         <NavItem item={NAV[0]} active={active} router={router} planStyle={null} />
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2 mt-2">Learning</p>
+        
         {NAV.slice(1).map(item => (
           <NavItem key={item.key} item={item} active={active} router={router} planStyle={item.planBadge ? planStyle : null} />
         ))}

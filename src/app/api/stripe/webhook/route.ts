@@ -178,8 +178,29 @@ export async function POST(req: NextRequest) {
       break;
     }
 
+    // ─── Single, unified checkout.session.completed handler ───────────
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
+
+      // Handle fee payment
+      if (session.metadata?.type === "fee_payment") {
+        const feeId = session.metadata.fee_id;
+        const studentId = session.metadata.student_id;
+        if (feeId) {
+          await prisma.feePayment.update({
+            where: { id: feeId },
+            data: { status: "paid", paid_at: new Date(), stripe_session_id: session.id },
+          });
+          if (studentId) {
+            await prisma.user.update({
+              where: { id: studentId },
+              data: { is_active: true },
+            });
+          }
+        }
+        break;
+      }
+
       // Handle booster one-time payment
       if (session.metadata?.type === "student" && session.metadata?.plan === "booster") {
         const studentId = session.metadata.student_id;
@@ -189,16 +210,13 @@ export async function POST(req: NextRequest) {
           if (existing) {
             await prisma.studentSubscription.update({
               where: { student_id: studentId },
-              data: {
-                messages_limit: existing.messages_limit + 500,
-                period_reset_at: boosterExpiry,
-              },
+              data: { messages_limit: existing.messages_limit + 500, period_reset_at: boosterExpiry },
             });
           } else {
             await prisma.studentSubscription.create({
               data: {
                 student_id: studentId,
-                stripe_customer_id: session.customer as string ?? `manual_${studentId}`,
+                stripe_customer_id: (session.customer as string) ?? `manual_${studentId}`,
                 plan: "booster",
                 status: "active",
                 messages_used: 0,

@@ -143,7 +143,7 @@ model School {
   enrollment_requests EnrollmentRequest[]
   announcements       Announcement[]
   fee_payments        FeePayment[]
-
+  fee_templates FeeTemplate[]
   @@index([slug])
   @@map("schools")
 }
@@ -174,6 +174,7 @@ model User {
   updated_at          DateTime  @updatedAt
   deleted_at          DateTime?
   student_subscription StudentSubscription?
+ grade        String?   // "5", "10", "O-Level" etc
   
   school                School?               @relation(fields: [school_id], references: [id])
   courses_created       Course[]              @relation("CourseAuthor")
@@ -602,15 +603,18 @@ model FeePayment {
   id                String    @id @default(cuid())
   student_id        String
   school_id         String
+  fee_template_id   String?
   amount            Float
   due_date          DateTime
   paid_at           DateTime?
   stripe_session_id String?
   status            FeeStatus @default(pending)
+  notes             String?
   created_at        DateTime  @default(now())
 
-  student User   @relation(fields: [student_id], references: [id])
-  school  School @relation(fields: [school_id], references: [id])
+  student      User         @relation(fields: [student_id], references: [id])
+  school       School       @relation(fields: [school_id], references: [id])
+  fee_template FeeTemplate? @relation(fields: [fee_template_id], references: [id])
 
   @@index([student_id])
   @@index([school_id])
@@ -943,4 +947,21 @@ model StudentSubscription {
   current_period_end     DateTime?
   created_at             DateTime @default(now())
   updated_at             DateTime @updatedAt
+}
+model FeeTemplate {
+  id         String   @id @default(cuid())
+  school_id  String
+  grade      String
+  amount     Float
+  due_day    Int
+  title      String
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  school       School       @relation(fields: [school_id], references: [id])
+  fee_payments FeePayment[]
+
+  @@index([school_id])
+  @@map("fee_templates")
 }
