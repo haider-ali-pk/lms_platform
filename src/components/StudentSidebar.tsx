@@ -1,6 +1,7 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, ClipboardList, HelpCircle, TrendingUp, Award, Bot, LayoutDashboard, LogOut } from "lucide-react";
+import { BookOpen, ClipboardList, HelpCircle, TrendingUp, Award, Bot, LayoutDashboard, LogOut, Zap } from "lucide-react";
 
 const NAV = [
   { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard, key: "dashboard" },
@@ -9,11 +10,29 @@ const NAV = [
   { label: "Quizzes", href: "/student/quizzes", icon: HelpCircle, key: "quizzes" },
   { label: "Progress", href: "/student/progress", icon: TrendingUp, key: "progress" },
   { label: "Certificates", href: "/student/certificates", icon: Award, key: "certificates" },
-  { label: "AI Tutor", href: "/student/ai", icon: Bot, key: "ai" },
+  { label: "AI Tutor", href: "/student/ai", icon: Bot, key: "ai", planBadge: true },
 ];
+
+const PLAN_STYLES: Record<string, { label: string; bg: string; color: string }> = {
+  free:    { label: "Free",  bg: "#F1F5F9", color: "#64748B" },
+  basic:   { label: "Basic", bg: "#EEF2FF", color: "#4F46E5" },
+  pro:     { label: "Pro",   bg: "#F0FDF4", color: "#16A34A" },
+  booster: { label: "Boost", bg: "#FFF7ED", color: "#EA580C" },
+};
 
 export default function StudentSidebar({ active }: { active: string }) {
   const router = useRouter();
+  const [plan, setPlan] = useState<string>("free");
+
+  useEffect(() => {
+    fetch("/api/student/billing")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.plan) setPlan(d.plan) })
+      .catch(() => {})
+  }, [])
+
+  const planStyle = PLAN_STYLES[plan] ?? PLAN_STYLES.free
+  const showUpgrade = !plan || plan === "free"
 
   return (
     <div className="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0 h-screen">
@@ -28,10 +47,26 @@ export default function StudentSidebar({ active }: { active: string }) {
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">Overview</p>
-        <NavItem item={NAV[0]} active={active} router={router} />
+        <NavItem item={NAV[0]} active={active} router={router} planStyle={null} />
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2 mt-2">Learning</p>
-        {NAV.slice(1).map(item => <NavItem key={item.key} item={item} active={active} router={router} />)}
+        {NAV.slice(1).map(item => (
+          <NavItem key={item.key} item={item} active={active} router={router} planStyle={item.planBadge ? planStyle : null} />
+        ))}
       </nav>
+
+      {/* Upgrade CTA */}
+      {showUpgrade && (
+        <div className="px-3 pb-3">
+          <button
+            onClick={() => router.push("/student/billing")}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+            style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}
+          >
+            <Zap size={12} />
+            Upgrade AI Plan
+          </button>
+        </div>
+      )}
 
       {/* Logout */}
       <div className="p-3 border-t border-gray-100">
@@ -46,7 +81,7 @@ export default function StudentSidebar({ active }: { active: string }) {
   );
 }
 
-function NavItem({ item, active, router }: any) {
+function NavItem({ item, active, router, planStyle }: any) {
   const isActive = active === item.key;
   return (
     <button
@@ -54,7 +89,16 @@ function NavItem({ item, active, router }: any) {
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${isActive ? "bg-indigo-50 text-indigo-600 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
     >
       <item.icon size={18} className={isActive ? "text-indigo-600" : "text-gray-400"} />
-      {item.label}
+      <span className="flex-1 text-left">{item.label}</span>
+      {planStyle && (
+        <span
+          className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+          style={{ background: planStyle.bg, color: planStyle.color }}
+        >
+          <Zap size={8} />
+          {planStyle.label}
+        </span>
+      )}
     </button>
   );
 }

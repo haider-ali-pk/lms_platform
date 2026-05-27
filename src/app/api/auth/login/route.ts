@@ -74,12 +74,20 @@ export async function POST(req: NextRequest) {
       (Date.now() - lastChange.getTime()) > 7 * 24 * 60 * 60 * 1000
 
     if (isExpired) {
-      return NextResponse.json({
-        success: false,
-        requirePasswordChange: true,
-        userId: user.id,
-        error: 'Password expired',
-      }, { status: 200 })
+     const expiredResponse = NextResponse.json({
+  success: false,
+  requirePasswordChange: true,
+  userId: user.id,
+  error: 'Password expired',
+}, { status: 200 })
+expiredResponse.cookies.set('token', '', {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 0,
+})
+return expiredResponse
     }
 
     // ── 2FA CHECK — skip OTP if 2FA enabled ──
@@ -102,11 +110,20 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json({
-      success: true,
-      requireOTP: true,
-      userId: user.id,
-    })
+    const otpResponse = NextResponse.json({
+  success: true,
+  requireOTP: true,
+  userId: user.id,
+})
+// Clear any existing session cookie so old role doesn't persist
+otpResponse.cookies.set('token', '', {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 0,
+})
+return otpResponse
 
   } catch (err) {
     console.error('LOGIN ERROR:', err)

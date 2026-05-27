@@ -173,6 +173,7 @@ model User {
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
   deleted_at          DateTime?
+  student_subscription StudentSubscription?
   
   school                School?               @relation(fields: [school_id], references: [id])
   courses_created       Course[]              @relation("CourseAuthor")
@@ -927,3 +928,19 @@ model EnrollmentRequest {
 
 // TimetableSlot already references Course — add back-relation on Course:
 // Done above in Course model via timetable_slots
+
+model StudentSubscription {
+  id                     String   @id @default(cuid())
+  student_id             String   @unique
+  student                User     @relation(fields: [student_id], references: [id])
+  stripe_customer_id     String
+  stripe_subscription_id String?
+  plan                   String   @default("free")
+  status                 String   @default("active")
+  messages_used          Int      @default(0)
+  messages_limit         Int      @default(10)
+  period_reset_at        DateTime
+  current_period_end     DateTime?
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+}

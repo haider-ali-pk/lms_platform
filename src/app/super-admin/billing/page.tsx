@@ -28,10 +28,13 @@ interface School {
 }
 
 interface Stats {
-  mrr: number;
-  activeCount: number;
+  totalMRR: number;
+  schoolMRR: number;
+  studentMRR: number;
+  activeSchools: number;
   pastDueCount: number;
   noplanCount: number;
+  paidStudents: number;
 }
 
 const PLANS = ["starter", "growth", "enterprise"];
@@ -68,7 +71,7 @@ const STATUS_ICONS: Record<string, React.ReactElement> = {
 export default function BillingPage() {
   const [schools, setSchools] = useState<School[]>([]);
   const [filtered, setFiltered] = useState<School[]>([]);
-  const [stats, setStats] = useState<Stats>({ mrr: 0, activeCount: 0, pastDueCount: 0, noplanCount: 0 });
+  const [stats, setStats] = useState<Stats>({ totalMRR: 0, schoolMRR: 0, studentMRR: 0, activeSchools: 0, pastDueCount: 0, noplanCount: 0, paidStudents: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -101,7 +104,15 @@ export default function BillingPage() {
     const data = await res.json();
     if (data.error) { setError(data.error); setLoading(false); return; }
     setSchools(data.schools);
-    setStats({ mrr: data.mrr, activeCount: data.activeCount, pastDueCount: data.pastDueCount, noplanCount: data.noplanCount });
+    setStats({
+  totalMRR: data.totalMRR,
+  schoolMRR: data.schoolMRR,
+  studentMRR: data.studentMRR,
+  activeSchools: data.activeSchools,
+  pastDueCount: data.pastDueCount,
+  noplanCount: data.noplanCount,
+  paidStudents: data.paidStudents,
+});
     setLoading(false);
   }
 
@@ -244,14 +255,15 @@ export default function BillingPage() {
         {[
           {
             label: "Monthly Revenue",
-            value: `$${stats.mrr.toLocaleString()}`,
-            sub: `$${(stats.mrr * 12).toLocaleString()} ARR`,
+            value: `$${(stats.totalMRR ?? 0).toLocaleString()}`,
+sub: `$${((stats.totalMRR ?? 0) * 12).toLocaleString()} ARR`,
+
             icon: <TrendingUp size={18} />,
             color: "text-emerald-600 bg-emerald-50",
           },
           {
             label: "Active Plans",
-            value: stats.activeCount,
+            value: stats.activeSchools,
             sub: `${schools.length} total schools`,
             icon: <Zap size={18} />,
             color: "text-indigo-600 bg-indigo-50",
