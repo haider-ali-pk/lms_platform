@@ -14,6 +14,7 @@ const NAV = [
   { label: "AI Tutor", href: "/student/ai", icon: Bot, key: "ai", planBadge: true },
   { label: "My Fees", href: "/student/fees", icon: DollarSign, key: "fees" },
   { label: "AI Plan", href: "/student/billing", icon: Zap, key: "billing", planBadge: true },
+  { label: "AI Analytics", href: "/student/analytics", icon: BarChart3, key: "analytics" },
 ];
 
 const PLAN_STYLES: Record<string, { label: string; bg: string; color: string }> = {

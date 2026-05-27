@@ -11,26 +11,66 @@ export async function POST(req: NextRequest) {
     const user = await getUserFromRequest(req);
     if (!user || user.role !== "student") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { message, session_id, subject, history } = await req.json();
+    // Check usage limits
+    let sub = await prisma.studentSubscription.findUnique({ where: { student_id: user.id } });
 
-    const subjectCtx = subject && subject !== "general"
-      ? `The student is currently studying ${subject}. Lean toward ${subject}-related context when relevant, but answer any question fully.`
-      : "";
+    if (!sub) {
+      const resetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      sub = await prisma.studentSubscription.create({
+        data: {
+          student_id: user.id,
+          stripe_customer_id: `free_${user.id}`,
+          plan: "free",
+          status: "active",
+          messages_used: 0,
+          messages_limit: 10,
+          period_reset_at: resetDate,
+        },
+      });
+    }
 
-    const systemPrompt = `You are an expert AI Tutor assistant for students. You have comprehensive knowledge across ALL subjects and domains — mathematics, sciences, history, literature, programming, arts, philosophy, medicine, law, economics, and everything else.
+    // Reset if period expired
+    if (new Date() > new Date(sub.period_reset_at)) {
+      const resetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      sub = await prisma.studentSubscription.update({
+        where: { student_id: user.id },
+        data: { messages_used: 0, period_reset_at: resetDate },
+      });
+    }
 
-${subjectCtx}
+    // Check limit
+    if (sub.messages_used >= sub.messages_limit) {
+      return NextResponse.json({
+        error: `You've used all ${sub.messages_limit} AI messages this month. Upgrade your plan to continue.`,
+        limitReached: true,
+        plan: sub.plan,
+      }, { status: 429 });
+    }
+
+    const { message, session_id, subject, history, mode } = await req.json();
+
+    const isHomeworkHelper = mode === "homework";
+
+    const systemPrompt = `You are an incredibly knowledgeable AI assistant. You have expertise in EVERYTHING — every academic subject, every sport, every movie, every TV show, every game, every hobby, music, art, history, science, technology, programming, cooking, travel, finance, health, philosophy, religion, politics, pop culture, and anything else a person could ask about.
+
+You are friendly, engaging, and adapt your tone to match what the person is asking — casual for fun topics, detailed for academic questions.
+
+${isHomeworkHelper ? `HOMEWORK HELPER MODE: The student needs help with homework. NEVER give direct answers. Instead:
+1. Understand what they're struggling with
+2. Explain the concept or method step by step
+3. Give a similar example (not their exact question)
+4. Guide them to solve it themselves
+5. Check their understanding` : ""}
+
+${subject && subject !== "general" ? `Current context: ${subject}` : ""}
 
 Guidelines:
-- Give thorough, accurate, well-structured answers tailored to a student's level
-- Use markdown formatting: headers, bullet points, code blocks, bold text
-- For math/science: show step-by-step working with clear explanations
-- For coding: provide complete, runnable code examples with comments
-- For essays/writing: give structure, examples, and tips
-- Break down complex concepts into simple, digestible explanations
-- Be encouraging, patient, and supportive
-- Use analogies and real-world examples to make concepts stick
-- Never refuse a legitimate educational question`;
+- Answer EVERY question fully — no topic is off limits
+- Use markdown for structure when helpful
+- Be engaging and human, not robotic
+- For academic topics: be thorough and educational
+- For fun topics (movies, sports, etc): be enthusiastic and conversational
+- Never say "I can't help with that" — you can help with everything`;
 
     const groqMessages = [
       ...(history || []).map((m: { role: string; content: string }) => ({
@@ -48,6 +88,12 @@ Guidelines:
     });
 
     const reply = completion.choices[0].message.content || "";
+
+    // Increment usage
+    await prisma.studentSubscription.update({
+      where: { student_id: user.id },
+      data: { messages_used: { increment: 1 } },
+    });
 
     let sessionId = session_id;
     if (!sessionId) {
@@ -70,7 +116,12 @@ Guidelines:
       ],
     });
 
-    return NextResponse.json({ reply, session_id: sessionId });
+    return NextResponse.json({
+      reply,
+      session_id: sessionId,
+      messagesUsed: sub.messages_used + 1,
+      messagesLimit: sub.messages_limit,
+    });
   } catch (error: any) {
     console.error("AI Chat error:", error);
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
